@@ -1,8 +1,20 @@
 /* eslint-disable semi */
 const waterfall = require('async/waterfall');
 
+async function test() {
+  const promises = [250, 500, 1000].map(ms => wait(ms));
+  console.log('resolved to', await Promise.all(promises));
+}
+
+async function wait(ms) {
+  await new Promise(resolve => setTimeout(() => resolve(), ms));
+  console.log('waited', ms);
+  return ms;
+}
+
 exports.kinesisHandler = (records, opts, context, callback) => {
   console.log(records);
+  test();
 };
 
 exports.handler = (event, context, callback) => {
@@ -13,14 +25,14 @@ exports.handler = (event, context, callback) => {
     // Handle Kinesis Stream
     if (record.kinesis && record.kinesis.data) {
       // Execute the handler in local development mode, without decryption
-      if (!isProductionEnv) {
+      // if (!isProductionEnv) {
         return exports.kinesisHandler(
           event.Records,
           {},
           context,
           callback
         );
-      }
+      // }
 
       // Handle Production decryption and execution of kinesisHandler
     }
