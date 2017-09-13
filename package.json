@@ -1,0 +1,82 @@
+{
+  "name": "nypl-hold-request-consumer",
+  "version": "0.0.1",
+  "description": "An AWS Lambda written in Node JS, responsible for listening to a stream of Cancelled requests and performing the check-out/check-in process to cancel the requested item.",
+  "main": "index.js",
+  "scripts": {
+    "lint": "./node_modules/.bin/standard",
+    "local-run": "./node_modules/.bin/node-lambda run -f ./config/local.env -j ./sample/sample_event.json",
+    "deploy-dev": "./node_modules/.bin/node-lambda deploy -e development -f ./config/dev.env -S config/event_sources_dev.json --role arn:aws:iam::224280085904:role/lambda_basic_execution --profile nypl-sandox",
+    "deploy-prod": "./node_modules/.bin/node-lambda deploy -e production -f ./config/prod.env -S config/event_sources_prod.json --role arn:aws:iam::946183545209:role/lambda-full-access --profile nypl-digital-dev",
+    "package": "./node_modules/.bin/node-lambda package",
+    "setup-node-lambda-env": "cp ./sample/.env.sample ./.env",
+    "setup-local-env": "mkdir -p config && cp ./sample/deployment.env.sample ./config/local.env",
+    "setup-dev-env": "mkdir -p config && cp ./sample/deployment.env.sample ./config/dev.env",
+    "setup-prod-env": "mkdir -p config && cp ./sample/deployment.env.sample ./config/prod.env",
+    "setup-dev-sources": "cp ./sample/sample_event_sources.json ./config/event_sources_dev.json",
+    "setup-prod-sources": "cp ./sample/sample_event_sources.json ./config/event_sources_prod.json",
+    "test": "NODE_ENV=test ./node_modules/.bin/nyc --reporter=lcov --reporter=text ./node_modules/mocha/bin/mocha",
+    "coverage": "./node_modules/.bin/nyc report --reporter=text-lcov | ./node_modules/.bin/coveralls",
+    "coverage-report": "./node_modules/.bin/nyc report --reporter=html"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NYPL/cancel-request-consumer.git"
+  },
+  "keywords": [
+    "aws",
+    "lambda",
+    "node",
+    "kinesis",
+    "stream"
+  ],
+  "author": "Rafael Hernandez",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/NYPL/cancel-request-consumer/issues"
+  },
+  "homepage": "https://github.com/NYPL/cancel-request-consumer#readme",
+  "dependencies": {
+    "@nypl/nypl-streams-client": "0.1.4",
+    "async": "2.5.0",
+    "aws-sdk": "2.112.0",
+    "axios": "0.16.2",
+    "circular-json": "0.3.3",
+    "lambda-env-vars": "0.4.0",
+    "qs": "6.5.0",
+    "winston": "2.3.1",
+    "winston-slack-hook": "0.3.0"
+  },
+  "devDependencies": {
+    "babel-plugin-istanbul": "4.1.4",
+    "babel-register": "6.26.0",
+    "chai": "4.1.2",
+    "chai-as-promised": "7.1.1",
+    "coveralls": "2.13.1",
+    "dotenv": "4.0.0",
+    "lambda-tester": "3.0.2",
+    "mocha": "3.5.2",
+    "node-lambda": "0.11.3",
+    "nyc": "11.2.0",
+    "sinon": "3.2.1",
+    "sinon-chai": "2.13.0",
+    "standard": "10.0.3"
+  },
+  "nyc": {
+    "require": [
+      "babel-register"
+    ],
+    "sourceMap": false,
+    "instrument": false
+  },
+  "standard": {
+    "env": {
+      "mocha": true
+    },
+    "ignore": [
+      "/sample/",
+      "/build/",
+      "config"
+    ]
+  }
+}
