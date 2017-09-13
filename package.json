@@ -1,5 +1,5 @@
 {
-  "name": "nypl-hold-request-consumer",
+  "name": "cancel-request-consumer",
   "version": "0.0.1",
   "description": "An AWS Lambda written in Node JS, responsible for listening to a stream of Cancelled requests and performing the check-out/check-in process to cancel the requested item.",
   "main": "index.js",
