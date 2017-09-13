@@ -1,6 +1,8 @@
 /* eslint-disable semi */
-exports.kinesisHandler = (records, opts, context, callback) => {
+const waterfall = require('async/waterfall');
 
+exports.kinesisHandler = (records, opts, context, callback) => {
+  console.log(records);
 };
 
 exports.handler = (event, context, callback) => {
@@ -12,8 +14,6 @@ exports.handler = (event, context, callback) => {
     if (record.kinesis && record.kinesis.data) {
       // Execute the handler in local development mode, without decryption
       if (!isProductionEnv) {
-        logger.info('executing kinesisHandler in local development mode');
-
         return exports.kinesisHandler(
           event.Records,
           {},
