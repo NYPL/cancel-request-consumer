@@ -1,7 +1,7 @@
 /* eslint-disable semi */
 import createErrorClass from 'create-error-class'
 
-const CancelRequestConsumerError = createErrorClass('CancelRequestConsumerError', (props) => {
+const CancelRequestConsumerError = createErrorClass('CancelRequestConsumerError', function(props) {
   this.message = props.message;
 
   // Optional
