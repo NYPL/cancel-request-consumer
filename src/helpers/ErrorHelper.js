@@ -2,6 +2,10 @@
 import createErrorClass from 'create-error-class'
 
 const CancelRequestConsumerError = createErrorClass('CancelRequestConsumerError', function(props) {
+  if (!props || !props.message) {
+    throw new Error('an error message is required at minimum');
+  }
+
   this.message = props.message;
 
   // Optional
