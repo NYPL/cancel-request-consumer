@@ -1,6 +1,6 @@
-/* eslint-disable semi */
+/* eslint-disable semi, no-unused-expressions */
 import chai from 'chai';
-//import chaiAsPromised from 'chai-as-promised';
+// import chaiAsPromised from 'chai-as-promised';
 import sinon from 'sinon';
 import sinonChai from 'sinon-chai';
 import CancelRequestConsumer from '../index.js';
@@ -11,7 +11,7 @@ chai.use(sinonChai);
 const expect = chai.expect;
 
 const kinesisHandlerFunc = CancelRequestConsumer.kinesisHandler;
-const handleKinesisAsyncProcessing = CancelRequestConsumer.handleKinesisAsyncProcessing;
+// const handleKinesisAsyncProcessing = CancelRequestConsumer.handleKinesisAsyncProcessing;
 
 describe('CancelRequestConsumer Lambda: Handle Kinesis Stream Input', () => {
   describe('Main Handler: exports.handler()', () => {
@@ -42,7 +42,6 @@ describe('CancelRequestConsumer Lambda: Handle Kinesis Stream Input', () => {
       expect(errArg.message).to.equal('the event.Records array is undefined');
       expect(callback).to.be.called;
     });
-
 
     it('should fire the callback function with an error if the event.Records array is empty', () => {
       let callback = sinon.spy();

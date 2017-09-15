@@ -3,7 +3,7 @@ import axios from 'axios';
 import MockAdapter from 'axios-mock-adapter';
 import chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
-import { getOauthConfig, fetchAccessToken, handleAuthentication } from '../../src/helpers/OAuthHelper';
+import { getOauthConfig, fetchAccessToken } from '../../src/helpers/OAuthHelper';
 const expect = chai.expect;
 chai.should();
 chai.use(chaiAsPromised);

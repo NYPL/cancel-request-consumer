@@ -3,7 +3,7 @@ import NyplStreamsClient from '@nypl/nypl-streams-client';
 import { handleAuthentication, fetchAccessToken } from './src/helpers/OAuthHelper';
 import { CancelRequestConsumerError } from './src/helpers/ErrorHelper';
 
-const handleKinesisAsyncProcessing = async function(records, opts, context, callback) {
+const handleKinesisAsyncProcessing = async function (records, opts, context, callback) {
   try {
     // Destructure configuration params
     const {
@@ -23,7 +23,7 @@ const handleKinesisAsyncProcessing = async function(records, opts, context, call
     ]);
 
     console.log(accessToken, decodedRecords);
-  } catch(e) {
+  } catch (e) {
     console.log('handleKinesisAsyncLogic', e);
   }
 };
@@ -32,7 +32,7 @@ exports.handleKinesisAsyncProcessing = handleKinesisAsyncProcessing;
 
 exports.kinesisHandler = (records, opts, context, callback) => {
   try {
-    if (!opts || Object.keys(opts).length == 0) {
+    if (!opts || Object.keys(opts).length === 0) {
       throw new CancelRequestConsumerError({ message: 'missing/undefined opts object configuration parameter' });
     }
 
@@ -75,7 +75,7 @@ exports.handler = (event, context, callback) => {
     // Handle Kinesis Stream
     if (record.kinesis && record.kinesis.data) {
       // Execute the handler in local development mode, without decryption
-      // if (!isProductionEnv) {
+      if (!isProductionEnv) {
         return exports.kinesisHandler(
           event.Records,
           {
@@ -89,7 +89,7 @@ exports.handler = (event, context, callback) => {
           context,
           callback
         );
-      // }
+      }
 
       // Handle Production decryption and execution of kinesisHandler
     }

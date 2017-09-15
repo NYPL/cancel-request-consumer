@@ -1,7 +1,8 @@
+/* eslint-disable semi */
 import axios from 'axios';
 import qs from 'qs';
 
-const getOauthConfig = function(clientId, clientSecret, scope, grantType = 'client_credentials') {
+const getOauthConfig = function (clientId, clientSecret, scope, grantType = 'client_credentials') {
   if (!clientId || typeof clientId !== 'string' || clientId.trim() === '') {
     throw new Error('the clientId parameter is not defined or invalid; must be of type string and not empty');
   }
@@ -18,11 +19,11 @@ const getOauthConfig = function(clientId, clientSecret, scope, grantType = 'clie
     client_id: clientId,
     client_secret: clientSecret,
     grant_type: grantType,
-    scope,
+    scope
   };
-};
+}
 
-const fetchAccessToken = function(oauthUrl, clientId, clientSecret, scope, grantType) {
+const fetchAccessToken = function (oauthUrl, clientId, clientSecret, scope, grantType) {
   if (!oauthUrl || typeof oauthUrl !== 'string' || oauthUrl.trim() === '') {
     return Promise.reject(new Error('the oauthUrl function parameter is not defined or invalid; must be of type string and not empty'));
   }
@@ -39,10 +40,10 @@ const fetchAccessToken = function(oauthUrl, clientId, clientSecret, scope, grant
     }).catch(error => {
       const errorResponse = error.response || error.request || error;
       return Promise.reject(errorResponse);
-    });
-};
+    })
+}
 
-const handleAuthentication = async function(cachedToken, getNewTokenFn) {
+const handleAuthentication = async function (cachedToken, getNewTokenFn) {
   if (cachedToken && typeof cachedToken === 'string' && cachedToken !== '') {
     // Re-use cached access token
     return Promise.resolve({
@@ -58,7 +59,7 @@ const handleAuthentication = async function(cachedToken, getNewTokenFn) {
       tokenType: 'new-token',
       token: accessToken
     };
-  } catch(e) {
+  } catch (e) {
     return Promise.reject(e);
   }
 }
@@ -67,4 +68,4 @@ export {
   getOauthConfig,
   fetchAccessToken,
   handleAuthentication
-};
+}
