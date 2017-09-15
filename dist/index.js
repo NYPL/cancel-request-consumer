@@ -112,25 +112,6 @@ exports.kinesisHandler = function (records, opts, context, callback) {
     }
 
     return exports.handleKinesisAsyncProcessing(records, opts, context, callback);
-
-    // // Destructure configuration params
-    // const {
-    //   oAuthProviderUrl,
-    //   oAuthClientId,
-    //   oAuthClientSecret,
-    //   oAuthProviderScope,
-    //   nyplDataApiBaseUrl,
-    //   recapCancelRequestSchema
-    // } = opts;
-    //
-    // const streamsClient = new NyplStreamsClient({ nyplDataApiClientBase: nyplDataApiBaseUrl });
-    //
-    // let [ accessToken, decodedRecords ] = await Promise.all([
-    //   handleAuthentication(null, fetchAccessToken(oAuthProviderUrl, oAuthClientId, oAuthClientSecret, oAuthProviderScope)),
-    //   streamsClient.decodeData(recapCancelRequestSchema, records.map(i => i.kinesis.data))
-    // ]);
-    //
-    // console.log(accessToken, decodedRecords);
   } catch (e) {
     // console.log('kinesisHandler Error Caught', e);
     return e;

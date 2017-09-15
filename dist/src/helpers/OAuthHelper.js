@@ -3,7 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.handleAuthentication = exports.fetchAccessToken = undefined;
+exports.handleAuthentication = exports.fetchAccessToken = exports.getOauthConfig = undefined;
 
 var _regenerator = require('babel-runtime/regenerator');
 
@@ -30,16 +30,16 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 var getOauthConfig = function getOauthConfig(clientId, clientSecret, scope) {
   var grantType = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 'client_credentials';
 
-  if (!clientId || clientId === '') {
-    throw new Error('missing clientId function parameter in getOauthConfig');
+  if (!clientId || typeof clientId !== 'string' || clientId.trim() === '') {
+    throw new Error('the clientId parameter is not defined or invalid; must be of type string and not empty');
   }
 
-  if (!clientSecret || clientSecret === '') {
-    throw new Error('missing clientSecret function parameter in getOauthConfig');
+  if (!clientSecret || typeof clientSecret !== 'string' || clientSecret.trim() === '') {
+    throw new Error('the clientSecret parameter is not defined or invalid; must be of type string and not empty');
   }
 
-  if (!scope || scope === '') {
-    throw new Error('missing scope function parameter in getOauthConfig');
+  if (!scope || typeof scope !== 'string' || scope.trim() === '') {
+    throw new Error('the scope parameter is not defined or invalid; must be of type string and not empty');
   }
 
   return {
@@ -51,8 +51,8 @@ var getOauthConfig = function getOauthConfig(clientId, clientSecret, scope) {
 };
 
 var fetchAccessToken = function fetchAccessToken(oauthUrl, clientId, clientSecret, scope, grantType) {
-  if (!oauthUrl || oauthUrl === '') {
-    return _promise2.default.reject(new Error('missing oauthUrl function parameter in fetchAccessToken'));
+  if (!oauthUrl || typeof oauthUrl !== 'string' || oauthUrl.trim() === '') {
+    return _promise2.default.reject(new Error('the oauthUrl function parameter is not defined or invalid; must be of type string and not empty'));
   }
 
   var oAuthConfig = getOauthConfig(clientId, clientSecret, scope, grantType);
@@ -65,7 +65,6 @@ var fetchAccessToken = function fetchAccessToken(oauthUrl, clientId, clientSecre
     return _promise2.default.resolve(result.data.access_token);
   }).catch(function (error) {
     var errorResponse = error.response || error.request || error;
-    console.log('hit the fetchAccessToken catch block');
     return _promise2.default.reject(errorResponse);
   });
 };
@@ -82,7 +81,10 @@ var handleAuthentication = function () {
               break;
             }
 
-            return _context.abrupt('return', _promise2.default.resolve(cachedToken));
+            return _context.abrupt('return', _promise2.default.resolve({
+              tokenType: 'cached-token',
+              token: cachedToken
+            }));
 
           case 2:
             _context.prev = 2;
@@ -91,7 +93,10 @@ var handleAuthentication = function () {
 
           case 5:
             accessToken = _context.sent;
-            return _context.abrupt('return', accessToken);
+            return _context.abrupt('return', {
+              tokenType: 'new-token',
+              token: accessToken
+            });
 
           case 9:
             _context.prev = 9;
@@ -111,5 +116,6 @@ var handleAuthentication = function () {
   };
 }();
 
+exports.getOauthConfig = getOauthConfig;
 exports.fetchAccessToken = fetchAccessToken;
 exports.handleAuthentication = handleAuthentication;
