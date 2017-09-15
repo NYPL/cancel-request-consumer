@@ -45,6 +45,7 @@
     "axios": "0.16.2",
     "babel-runtime": "6.26.0",
     "circular-json": "0.3.3",
+    "create-error-class": "3.0.2",
     "lambda-env-vars": "0.4.0",
     "qs": "6.5.0",
     "winston": "2.3.1",
