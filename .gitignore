@@ -1,3 +1,6 @@
+# Distribution directory (Babel)
+dist/
+
 # Dependency directory
 node_modules
 
