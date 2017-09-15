@@ -1,20 +1,70 @@
 /* eslint-disable semi */
-const waterfall = require('async/waterfall');
+import NyplStreamsClient from '@nypl/nypl-streams-client';
+import { handleAuthentication, fetchAccessToken } from './src/helpers/OAuthHelper';
+import { CancelRequestConsumerError } from './src/helpers/ErrorHelper';
 
-async function test() {
-  const promises = [250, 500, 1000].map(ms => wait(ms));
-  console.log('resolved to', await Promise.all(promises));
-}
+const handleKinesisAsyncProcessing = async function(records, opts, context, callback) {
+  try {
+    // Destructure configuration params
+    const {
+      oAuthProviderUrl,
+      oAuthClientId,
+      oAuthClientSecret,
+      oAuthProviderScope,
+      nyplDataApiBaseUrl,
+      recapCancelRequestSchema
+    } = opts;
 
-async function wait(ms) {
-  await new Promise(resolve => setTimeout(() => resolve(), ms));
-  console.log('waited', ms);
-  return ms;
-}
+    const streamsClient = new NyplStreamsClient({ nyplDataApiClientBase: nyplDataApiBaseUrl });
+
+    let [ accessToken, decodedRecords ] = await Promise.all([
+      handleAuthentication(null, fetchAccessToken(oAuthProviderUrl, oAuthClientId, oAuthClientSecret, oAuthProviderScope)),
+      streamsClient.decodeData(recapCancelRequestSchema, records.map(i => i.kinesis.data))
+    ]);
+
+    console.log(accessToken, decodedRecords);
+  } catch(e) {
+    console.log('handleKinesisAsyncLogic', e);
+  }
+};
+
+exports.handleKinesisAsyncProcessing = handleKinesisAsyncProcessing;
 
 exports.kinesisHandler = (records, opts, context, callback) => {
-  console.log(records);
-  test();
+  try {
+    if (!opts || Object.keys(opts).length == 0) {
+      throw new CancelRequestConsumerError({ message: 'missing/undefined opts object configuration parameter' });
+    }
+
+    if (!opts.oAuthProviderUrl || (typeof opts.oAuthProviderUrl === 'string' && opts.oAuthProviderUrl.trim() === '')) {
+      throw new CancelRequestConsumerError({ message: 'missing/undefined oAuthProviderUrl configuration parameter' });
+    }
+
+    if (!opts.oAuthClientId || (typeof opts.oAuthClientId === 'string' && opts.oAuthClientId.trim() === '')) {
+      throw new CancelRequestConsumerError({ message: 'missing/undefined oAuthClientId configuration parameter' });
+    }
+
+    if (!opts.oAuthClientSecret || (typeof opts.oAuthClientSecret === 'string' && opts.oAuthClientSecret.trim() === '')) {
+      throw new CancelRequestConsumerError({ message: 'missing/undefined oAuthClientSecret configuration parameter' });
+    }
+
+    if (!opts.oAuthProviderScope || (typeof opts.oAuthProviderScope === 'string' && opts.oAuthProviderScope.trim() === '')) {
+      throw new CancelRequestConsumerError({ message: 'missing/undefined oAuthProviderScope configuration parameter' });
+    }
+
+    if (!opts.nyplDataApiBaseUrl || (typeof opts.nyplDataApiBaseUrl === 'string' && opts.nyplDataApiBaseUrl.trim() === '')) {
+      throw new CancelRequestConsumerError({ message: 'missing/undefined nyplDataApiBaseUrl configuration parameter' });
+    }
+
+    if (!opts.recapCancelRequestSchema || (typeof opts.recapCancelRequestSchema === 'string' && opts.recapCancelRequestSchema.trim() === '')) {
+      throw new CancelRequestConsumerError({ message: 'missing/undefined recapCancelRequestSchema configuration parameter' });
+    }
+
+    return exports.handleKinesisAsyncProcessing(records, opts, context, callback);
+  } catch (e) {
+    // console.log('kinesisHandler Error Caught', e);
+    return e;
+  }
 };
 
 exports.handler = (event, context, callback) => {
@@ -28,7 +78,14 @@ exports.handler = (event, context, callback) => {
       // if (!isProductionEnv) {
         return exports.kinesisHandler(
           event.Records,
-          {},
+          {
+            oAuthProviderUrl: process.env.OAUTH_PROVIDER_URL,
+            oAuthClientId: process.env.OAUTH_CLIENT_ID,
+            oAuthClientSecret: process.env.OAUTH_CLIENT_SECRET,
+            oAuthProviderScope: process.env.OAUTH_PROVIDER_SCOPE,
+            nyplDataApiBaseUrl: process.env.NYPL_DATA_API_BASE_URL,
+            recapCancelRequestSchema: process.env.RECAP_CANCEL_REQUEST_SCHEMA_NAME
+          },
           context,
           callback
         );
