@@ -3,12 +3,18 @@ import axios from 'axios';
 import MockAdapter from 'axios-mock-adapter';
 import chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
-import { getOauthConfig, fetchAccessToken } from '../../src/helpers/OAuthHelper';
+import { getOauthConfig, fetchAccessToken, handleAuthentication } from '../../src/helpers/OAuthHelper';
 const expect = chai.expect;
 chai.should();
 chai.use(chaiAsPromised);
 
 describe('CancelRequestConsumer Lambda: OAuthHelper Factory', () => {
+  const mockAdapter = new MockAdapter(axios);
+
+  afterEach(() => {
+    mockAdapter.reset();
+  });
+
   describe('getOauthConfig(clientId, clientSecret, scope, grantType) function', () => {
     it('should throw an error if the cliendId parameter is NULL', () => {
       expect(() => getOauthConfig(null, 'clientSecret', 'scope')).to.throw(/the clientId parameter is not defined or invalid; must be of type string and not empty/);
@@ -76,12 +82,6 @@ describe('CancelRequestConsumer Lambda: OAuthHelper Factory', () => {
   });
 
   describe('fetchAccessToken(oauthUrl, clientId, clientSecret, scope, grantType) function', () => {
-    let mockAdapter = new MockAdapter(axios);
-
-    afterEach(() => {
-      mockAdapter.reset();
-    });
-
     it('should reject the Promise if the oauthUrl string parameter is NULL', () => {
       const result = fetchAccessToken(null, 'clientId', 'clientSecret', 'scope', 'customGrantType');
       return result.should.be.rejectedWith(Error, /the oauthUrl function parameter is not defined or invalid; must be of type string and not empty/);
@@ -131,6 +131,48 @@ describe('CancelRequestConsumer Lambda: OAuthHelper Factory', () => {
 
       const response = fetchAccessToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope');
       return response.should.be.rejected.and.should.eventually.have.property('status', 500);
+    });
+  });
+
+  describe('handleAuthentication(cachedToken, fetchTokenCallbackFn) function', () => {
+    it('should resolve the Promise when the cachedToken parameter is already defined', () => {
+      const result = handleAuthentication('cachedTokenValue');
+      return result.should.be.fulfilled.and.should.eventually.deep.equal({
+        tokenType: 'cached-token',
+        token: 'cachedTokenValue'
+      });
+    });
+
+    it('should call the fetchTokenCallbackFn to resolve a new token when the cachedToken is not defined', () => {
+      mockAdapter.onPost().reply(
+        200,
+        {
+          access_token: 'newAccessTokenResolved'
+        }
+      );
+
+      const result = handleAuthentication(null, fetchAccessToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope'));
+
+      return result.should.be.fulfilled.and.should.eventually.deep.equal({
+        tokenType: 'new-token',
+        token: 'newAccessTokenResolved'
+      });
+    });
+
+    it('should call the fetchTokenCallbackFn when the cachedToken is undefined and if an API (5xx) error occurs should reject the Promise with the error', () => {
+      mockAdapter.onPost().reply(500);
+
+      const result = handleAuthentication(null, fetchAccessToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope'));
+
+      return result.should.be.rejected.and.should.eventually.have.property('status', 500);
+    });
+
+    it('should call the fetchTokenCallbackFn when the cachedToken is undefined and if an API (4xx) error occurs should reject the Promise with the error', () => {
+      mockAdapter.onPost().reply(401);
+
+      const result = handleAuthentication(null, fetchAccessToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope'));
+
+      return result.should.be.rejected.and.should.eventually.have.property('status', 401);
     });
   });
 });

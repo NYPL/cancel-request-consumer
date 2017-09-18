@@ -46,10 +46,10 @@ const fetchAccessToken = function (oauthUrl, clientId, clientSecret, scope, gran
 const handleAuthentication = async function (cachedToken, getNewTokenFn) {
   if (cachedToken && typeof cachedToken === 'string' && cachedToken !== '') {
     // Re-use cached access token
-    return Promise.resolve({
+    return {
       tokenType: 'cached-token',
       token: cachedToken
-    });
+    };
   }
 
   try {
@@ -60,7 +60,7 @@ const handleAuthentication = async function (cachedToken, getNewTokenFn) {
       token: accessToken
     };
   } catch (e) {
-    return Promise.reject(e);
+    throw e;
   }
 }
 

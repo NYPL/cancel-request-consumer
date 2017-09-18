@@ -1,7 +1,7 @@
 /* eslint-disable semi */
 import NyplStreamsClient from '@nypl/nypl-streams-client';
 import { handleAuthentication, fetchAccessToken } from './src/helpers/OAuthHelper';
-import { CancelRequestConsumerError } from './src/helpers/ErrorHelper';
+import CancelRequestConsumerError from './src/helpers/ErrorHelper';
 
 const handleKinesisAsyncProcessing = async function (records, opts, context, callback) {
   try {
@@ -33,31 +33,52 @@ exports.handleKinesisAsyncProcessing = handleKinesisAsyncProcessing;
 exports.kinesisHandler = (records, opts, context, callback) => {
   try {
     if (!opts || Object.keys(opts).length === 0) {
-      throw new CancelRequestConsumerError({ message: 'missing/undefined opts object configuration parameter' });
+      throw new CancelRequestConsumerError(
+        'missing/undefined opts object configuration parameter',
+        { type: 'function-parameter-error' }
+      );
     }
 
     if (!opts.oAuthProviderUrl || (typeof opts.oAuthProviderUrl === 'string' && opts.oAuthProviderUrl.trim() === '')) {
-      throw new CancelRequestConsumerError({ message: 'missing/undefined oAuthProviderUrl configuration parameter' });
+      throw new CancelRequestConsumerError(
+        'missing/undefined oAuthProviderUrl configuration parameter',
+        { type: 'function-parameter-error' }
+      );
     }
 
     if (!opts.oAuthClientId || (typeof opts.oAuthClientId === 'string' && opts.oAuthClientId.trim() === '')) {
-      throw new CancelRequestConsumerError({ message: 'missing/undefined oAuthClientId configuration parameter' });
+      throw new CancelRequestConsumerError(
+        'missing/undefined oAuthClientId configuration parameter',
+        { type: 'function-parameter-error' }
+      );
     }
 
     if (!opts.oAuthClientSecret || (typeof opts.oAuthClientSecret === 'string' && opts.oAuthClientSecret.trim() === '')) {
-      throw new CancelRequestConsumerError({ message: 'missing/undefined oAuthClientSecret configuration parameter' });
+      throw new CancelRequestConsumerError(
+        'missing/undefined oAuthClientSecret configuration parameter',
+        { type: 'function-parameter-error' }
+      );
     }
 
     if (!opts.oAuthProviderScope || (typeof opts.oAuthProviderScope === 'string' && opts.oAuthProviderScope.trim() === '')) {
-      throw new CancelRequestConsumerError({ message: 'missing/undefined oAuthProviderScope configuration parameter' });
+      throw new CancelRequestConsumerError(
+        'missing/undefined oAuthProviderScope configuration parameter',
+        { type: 'function-parameter-error' }
+      );
     }
 
     if (!opts.nyplDataApiBaseUrl || (typeof opts.nyplDataApiBaseUrl === 'string' && opts.nyplDataApiBaseUrl.trim() === '')) {
-      throw new CancelRequestConsumerError({ message: 'missing/undefined nyplDataApiBaseUrl configuration parameter' });
+      throw new CancelRequestConsumerError(
+        'missing/undefined nyplDataApiBaseUrl configuration parameter',
+        { type: 'function-parameter-error' }
+      );
     }
 
     if (!opts.recapCancelRequestSchema || (typeof opts.recapCancelRequestSchema === 'string' && opts.recapCancelRequestSchema.trim() === '')) {
-      throw new CancelRequestConsumerError({ message: 'missing/undefined recapCancelRequestSchema configuration parameter' });
+      throw new CancelRequestConsumerError(
+        'missing/undefined recapCancelRequestSchema configuration parameter',
+        { type: 'function-parameter-error' }
+      );
     }
 
     return exports.handleKinesisAsyncProcessing(records, opts, context, callback);

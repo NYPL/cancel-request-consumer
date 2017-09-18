@@ -1,25 +1,32 @@
 /* eslint-disable semi */
-import createErrorClass from 'create-error-class'
+export default class CancelRequestConsumerError extends Error {
+  constructor (message, opts = {}) {
+    if (!message || typeof message !== 'string' || message.trim() === '') {
+      throw new Error('an error message is required');
+    }
 
-const CancelRequestConsumerError = createErrorClass('CancelRequestConsumerError', function(props) {
-  if (!props || !props.message) {
-    throw new Error('an error message is required at minimum');
-  }
+    super(message);
 
-  this.message = props.message;
+    // Capturing stack trace, excluding constructor call from it.
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, this.constructor);
+    } else {
+      this.stack = (new Error(message)).stack;
+    }
 
-  // Optional
-  if (props.statusCode) {
-    this.statusCode = props.statusCode;
-  }
-  if (props.type) {
-    this.type = props.type;
-  }
-  if (props.debugInfo) {
-    this.debugInfo = props.debugInfo;
-  }
-})
+    // Saving class name in the property of our custom error as a shortcut.
+    this.name = this.constructor.name;
 
-export {
-  CancelRequestConsumerError
+    if (opts.type) {
+      this.type = opts.type;
+    }
+
+    if (opts.statusCode) {
+      this.statusCode = opts.statusCode;
+    }
+
+    if (opts.debugInfo) {
+      this.debugInfo = opts.debugInfo;
+    }
+  }
 };
