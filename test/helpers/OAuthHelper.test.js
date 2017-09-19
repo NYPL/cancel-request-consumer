@@ -9,10 +9,14 @@ chai.should();
 chai.use(chaiAsPromised);
 
 describe('CancelRequestConsumer Lambda: OAuthHelper Factory', () => {
-  const mockAdapter = new MockAdapter(axios);
+  let mock;
 
-  afterEach(() => {
-    mockAdapter.reset();
+  beforeEach(function() {
+    mock = new MockAdapter(axios);
+  });
+
+  afterEach(function() {
+    mock.reset();
   });
 
   describe('getOauthConfig(clientId, clientSecret, scope, grantType) function', () => {
@@ -98,7 +102,7 @@ describe('CancelRequestConsumer Lambda: OAuthHelper Factory', () => {
     });
 
     it('should resolve the Promise with an access_token when the OAuth URL is valid', () => {
-      mockAdapter.onPost().reply(
+      mock.onPost().reply(
         200,
         {
           access_token: 'validaccesstoken'
@@ -110,7 +114,7 @@ describe('CancelRequestConsumer Lambda: OAuthHelper Factory', () => {
     });
 
     it('should reject the Promise with an error response when response does not contain an access_token key', () => {
-      mockAdapter.onPost().reply(
+      mock.onPost().reply(
         200,
         {}
       );
@@ -120,14 +124,14 @@ describe('CancelRequestConsumer Lambda: OAuthHelper Factory', () => {
     });
 
     it('should reject the Promise with an error response when the OAuth server returns a 404', () => {
-      mockAdapter.onPost().reply(404);
+      mock.onPost().reply(404);
 
       const response = fetchAccessToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope');
       return response.should.be.rejected.and.should.eventually.have.property('status', 404);
     });
 
     it('should reject the Promise with an error response when the OAuth server returns a 500 (Internal Server Error)', () => {
-      mockAdapter.onPost().reply(500);
+      mock.onPost().reply(500);
 
       const response = fetchAccessToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope');
       return response.should.be.rejected.and.should.eventually.have.property('status', 500);
@@ -144,7 +148,7 @@ describe('CancelRequestConsumer Lambda: OAuthHelper Factory', () => {
     });
 
     it('should call the fetchTokenCallbackFn to resolve a new token when the cachedToken is not defined', () => {
-      mockAdapter.onPost().reply(
+      mock.onPost().reply(
         200,
         {
           access_token: 'newAccessTokenResolved'
@@ -160,7 +164,7 @@ describe('CancelRequestConsumer Lambda: OAuthHelper Factory', () => {
     });
 
     it('should call the fetchTokenCallbackFn when the cachedToken is undefined and if an API (5xx) error occurs should reject the Promise with the error', () => {
-      mockAdapter.onPost().reply(500);
+      mock.onPost().reply(500);
 
       const result = handleAuthentication(null, fetchAccessToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope'));
 
@@ -168,7 +172,7 @@ describe('CancelRequestConsumer Lambda: OAuthHelper Factory', () => {
     });
 
     it('should call the fetchTokenCallbackFn when the cachedToken is undefined and if an API (4xx) error occurs should reject the Promise with the error', () => {
-      mockAdapter.onPost().reply(401);
+      mock.onPost().reply(401);
 
       const result = handleAuthentication(null, fetchAccessToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope'));
 
