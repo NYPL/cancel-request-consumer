@@ -24,7 +24,7 @@ const handleKinesisAsyncProcessing = async function (records, opts, context, cal
     ]);
 
     let processedCheckoutItems = await ApiHelper.handleCancelItemPostRequests(decodedRecords, 'checkout-service', 'https://api.nypltech.org/api/v0.1/checkout-requests', accessTokenObject.token);
-    let processedCheckinItems = await ApiHelper.handleCancelItemPostRequests(processedCheckoutItems, 'checkin-service', 'https://api.nypltech.org/api/v0.1/checkin-requests', accessTokenObject.token)
+    let processedCheckinItems = await ApiHelper.handleCancelItemPostRequests(processedCheckoutItems, 'checkin-service', 'https://api.nypltech.org/api/v0.1/checkin-requests', accessTokenObject.token);
     console.log(processedCheckinItems);
 
     //let singleRecord = decodedRecords[0];
