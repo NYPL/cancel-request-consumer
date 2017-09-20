@@ -4,7 +4,41 @@ import { handleAuthentication, fetchAccessToken } from './src/helpers/OAuthHelpe
 import ApiHelper from './src/helpers/ApiHelper';
 import CancelRequestConsumerError from './src/helpers/ErrorHelper';
 
-const handleKinesisAsyncProcessing = async function (records, opts, context, callback) {
+// const handleKinesisAsyncProcessing = async function (records, opts, context, callback) {
+//   try {
+//     // Destructure configuration params
+//     const {
+//       oAuthProviderUrl,
+//       oAuthClientId,
+//       oAuthClientSecret,
+//       oAuthProviderScope,
+//       nyplDataApiBaseUrl,
+//       recapCancelRequestSchema
+//     } = opts;
+//
+//     const streamsClient = new NyplStreamsClient({ nyplDataApiClientBase: nyplDataApiBaseUrl });
+//
+//     let [ accessTokenObject, decodedRecords ] = await Promise.all([
+//       handleAuthentication(null, fetchAccessToken(oAuthProviderUrl, oAuthClientId, oAuthClientSecret, oAuthProviderScope)),
+//       streamsClient.decodeData(recapCancelRequestSchema, records.map(i => i.kinesis.data))
+//     ]);
+//
+//     let processedCheckoutItems = await ApiHelper.handleCancelItemPostRequests(decodedRecords, 'checkout-service', 'https://api.nypltech.org/api/v0.1/checkout-requests', accessTokenObject.token);
+//     let processedCheckinItems = await ApiHelper.handleCancelItemPostRequests(processedCheckoutItems, 'checkin-service', 'https://api.nypltech.org/api/v0.1/checkin-requests', accessTokenObject.token);
+//     console.log(processedCheckinItems);
+//     return callback(null, processedCheckinItems);
+//     //let singleRecord = decodedRecords[0];
+//
+//     // console.log(accessTokenObject);
+//
+//     //let result = ApiHelper.postCheckOutItem('https://api.nypltech.org/api/v0.1/checkout-requests', accessTokenObject.token, singleRecord, null);
+//     // console.log(result);
+//   } catch (e) {
+//     console.log('handleKinesisAsyncLogic', e);
+//   }
+// };
+
+exports.handleKinesisAsyncProcessing = async function(records, opts, context, callback) {
   try {
     // Destructure configuration params
     const {
@@ -26,7 +60,7 @@ const handleKinesisAsyncProcessing = async function (records, opts, context, cal
     let processedCheckoutItems = await ApiHelper.handleCancelItemPostRequests(decodedRecords, 'checkout-service', 'https://api.nypltech.org/api/v0.1/checkout-requests', accessTokenObject.token);
     let processedCheckinItems = await ApiHelper.handleCancelItemPostRequests(processedCheckoutItems, 'checkin-service', 'https://api.nypltech.org/api/v0.1/checkin-requests', accessTokenObject.token);
     console.log(processedCheckinItems);
-
+    return callback(null, processedCheckinItems);
     //let singleRecord = decodedRecords[0];
 
     // console.log(accessTokenObject);
@@ -37,8 +71,6 @@ const handleKinesisAsyncProcessing = async function (records, opts, context, cal
     console.log('handleKinesisAsyncLogic', e);
   }
 };
-
-exports.handleKinesisAsyncProcessing = handleKinesisAsyncProcessing;
 
 exports.kinesisHandler = (records, opts, context, callback) => {
   try {
@@ -108,7 +140,7 @@ exports.kinesisHandler = (records, opts, context, callback) => {
     return exports.handleKinesisAsyncProcessing(records, opts, context, callback);
   } catch (e) {
     // console.log('kinesisHandler Error Caught', e);
-    return e;
+    return callback(e.message);
   }
 };
 
@@ -120,7 +152,7 @@ exports.handler = (event, context, callback) => {
     // Handle Kinesis Stream
     if (record.kinesis && record.kinesis.data) {
       // Execute the handler in local development mode, without decryption
-      if (!isProductionEnv) {
+      //if (!isProductionEnv) {
         return exports.kinesisHandler(
           event.Records,
           {
@@ -136,7 +168,7 @@ exports.handler = (event, context, callback) => {
           context,
           callback
         );
-      }
+      //}
 
       // Handle Production decryption and execution of kinesisHandler
     }
