@@ -19,7 +19,8 @@
     "setup-prod-sources": "cp ./sample/sample_event_sources.json ./config/event_sources_prod.json",
     "test": "NODE_ENV=test ./node_modules/.bin/nyc --reporter=lcov --reporter=text ./node_modules/mocha/bin/mocha",
     "coverage": "./node_modules/.bin/nyc report --reporter=text-lcov | ./node_modules/.bin/coveralls",
-    "coverage-report": "./node_modules/.bin/nyc report --reporter=html"
+    "coverage-report": "./node_modules/.bin/nyc report --reporter=html && npm run open-report",
+    "open-report": "open -a 'Google Chrome' ./coverage/index.html"
   },
   "repository": {
     "type": "git",
