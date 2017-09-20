@@ -1,5 +1,9 @@
 # Cancel Request Consumer Lambda
-An AWS Lambda written in Node JS, responsible for listening to a stream of Cancelled requests and performing the check-out/check-in process to cancel the requested item.
+[![Coverage Status](https://coveralls.io/repos/github/NYPL/cancel-request-consumer/badge.svg?branch=master)](https://coveralls.io/github/NYPL/cancel-request-consumer?branch=master)
+[![Build Status](https://travis-ci.org/NYPL/cancel-request-consumer.svg?branch=master)](https://travis-ci.org/NYPL/cancel-request-consumer)
+[![Dependency Status](https://gemnasium.com/badges/github.com/NYPL/cancel-request-consumer.svg)](https://gemnasium.com/github.com/NYPL/cancel-request-consumer)
+
+An AWS Lambda written in Node JS (ES7 via Babel), responsible for listening to a stream of Cancelled requests and performing the check-out/check-in process to cancel the requested item.
 
 ## Table of Contents
 - [Requirements](#requirements)
@@ -16,7 +20,8 @@ An AWS Lambda written in Node JS, responsible for listening to a stream of Cance
 > v0.0.1
 
 ## Requirements
-> [Node 6.10.3](https://nodejs.org/docs/v6.10.3/api/)
+> Written in ES7
+> AWS Node Target - [Node 6.10.3](https://nodejs.org/docs/v6.10.3/api/)
 
 ## Getting Started
 
@@ -121,13 +126,15 @@ Next, run the following NPM command to use the **sample** event found in `./samp
 
 > Exceutes `node lambda run` pointing the the sample event.
 ```console
-$ npm run local-run
+$ npm run local-run // Code is transpiled into dist/ and node-lambda will use that as the target path
 ```
 
 ### Deploying your Lambda
 To deploy your Lambda function via the `node-lambda` module __**ensure**__ you have completed all the steps of the [Setup](#setup-configurations) process and have added all configuration variables required.
 
 The following NPM Commands will execute the `node-lambda deploy` command mapping configurations to the proper environments (qa & production). These commands can be modified in `package.json`.
+
+> Prior to the execution of any `npm deploy ...` commands, `npm run build` is executed to successfully transpile all ES7 code th Node 6.10.x
 
 * Runs `node-lambda deploy` with **DEVELOPMENT** configurations
 ```console

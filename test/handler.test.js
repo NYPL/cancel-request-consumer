@@ -4,6 +4,7 @@ import chai from 'chai';
 import sinon from 'sinon';
 import sinonChai from 'sinon-chai';
 import CancelRequestConsumer from '../index.js';
+import CancelRequestConsumerError from '../src/helpers/ErrorHelper';
 import event from '../sample/sample_event.json';
 chai.should();
 chai.use(sinonChai);
@@ -77,134 +78,161 @@ describe('CancelRequestConsumer Lambda: Handle Kinesis Stream Input', () => {
   });
 
   describe('Kinesis Handler: exports.kinesisHandler()', () => {
-    it('should throw an CancelRequestConsumerError if the config options parameter is NULL', () => {
-      const result = kinesisHandlerFunc(event.Records, null);
-      expect(result).to.have.property('message', 'missing/undefined opts object configuration parameter');
+    const callbackSpy = sinon.spy();
+
+    it('should catch a CancelRequestConsumerError and return the callback with the error message if the config options parameter is NULL', () => {
+
+      kinesisHandlerFunc(event.Records, null, null, callbackSpy);
+
+      expect(callbackSpy).to.be.calledWith('missing/undefined opts object configuration parameter');
     });
 
-    it('should throw an CancelRequestConsumerError if the config options parameter is UNDEFINED', () => {
-      const result = kinesisHandlerFunc(event.Records, undefined);
-      expect(result).to.have.property('message', 'missing/undefined opts object configuration parameter');
+    it('should catch a CancelRequestConsumerError and return the callback with the error message if the config options parameter is UNDEFINED', () => {
+
+      kinesisHandlerFunc(event.Records, undefined, null, callbackSpy);
+
+      expect(callbackSpy).to.be.calledWith('missing/undefined opts object configuration parameter');
     });
 
-    it('should throw an CancelRequestConsumerError if the config options parameter is an EMPTY object', () => {
-      const result = kinesisHandlerFunc(event.Records, {});
-      expect(result).to.have.property('message', 'missing/undefined opts object configuration parameter');
+    it('should catch a CancelRequestConsumerError and return the callback with the error message if the config options parameter is an EMPTY object', () => {
+
+      kinesisHandlerFunc(event.Records, {}, null, callbackSpy);
+
+      expect(callbackSpy).to.be.calledWith('missing/undefined opts object configuration parameter');
     });
 
-    it('should throw an CancelRequestConsumerError if the oAuthProviderUrl configuration parameter is undefined', () => {
-      const result = kinesisHandlerFunc(
+    it('should catch a CancelRequestConsumerError and return the callback with the error message if the oAuthProviderUrl configuration parameter is undefined', () => {
+
+      kinesisHandlerFunc(
         event.Records,
         {
           someKey: 'someValue'
-        }
+        },
+        null,
+        callbackSpy
       );
 
-      expect(result).to.have.property('message', 'missing/undefined oAuthProviderUrl configuration parameter');
+      expect(callbackSpy).to.be.calledWith('missing/undefined oAuthProviderUrl configuration parameter');
     });
 
-    it('should throw an CancelRequestConsumerError if the oAuthProviderUrl configuration parameter is an EMPTY string', () => {
-      const result = kinesisHandlerFunc(
+    it('should catch a CancelRequestConsumerError and return the callback with the error message if the oAuthProviderUrl configuration parameter is an EMPTY string', () => {
+      kinesisHandlerFunc(
         event.Records,
         {
           oAuthProviderUrl: ''
-        }
+        },
+        null,
+        callbackSpy
       );
 
-      expect(result).to.have.property('message', 'missing/undefined oAuthProviderUrl configuration parameter');
+      expect(callbackSpy).to.be.calledWith('missing/undefined oAuthProviderUrl configuration parameter');
     });
 
-    it('should throw an CancelRequestConsumerError if the oAuthClientId configuration parameter is missing', () => {
-      const result = kinesisHandlerFunc(
+    it('should catch a CancelRequestConsumerError and return the callback with the error message if the oAuthClientId configuration parameter is missing', () => {
+      kinesisHandlerFunc(
         event.Records,
         {
           oAuthProviderUrl: 'http://oauthurl.org'
-        }
+        },
+        null,
+        callbackSpy
       );
 
-      expect(result).to.have.property('message', 'missing/undefined oAuthClientId configuration parameter');
+      expect(callbackSpy).to.be.calledWith('missing/undefined oAuthClientId configuration parameter');
     });
 
-    it('should throw an CancelRequestConsumerError if the oAuthClientId configuration parameter is an EMPTY string', () => {
-      const result = kinesisHandlerFunc(
+    it('should catch a CancelRequestConsumerError and return the callback with the error message if the oAuthClientId configuration parameter is an EMPTY string', () => {
+      kinesisHandlerFunc(
         event.Records,
         {
           oAuthProviderUrl: 'http://oauthurl.org',
           oAuthClientId: ''
-        }
+        },
+        null,
+        callbackSpy
       );
 
-      expect(result).to.have.property('message', 'missing/undefined oAuthClientId configuration parameter');
+      expect(callbackSpy).to.be.calledWith('missing/undefined oAuthClientId configuration parameter');
     });
 
-    it('should throw an CancelRequestConsumerError if the oAuthClientSecret configuration parameter is missing', () => {
-      const result = kinesisHandlerFunc(
+    it('should catch a CancelRequestConsumerError and return the callback with the error message if the oAuthClientSecret configuration parameter is missing', () => {
+      kinesisHandlerFunc(
         event.Records,
         {
           oAuthProviderUrl: 'http://oauthurl.org',
           oAuthClientId: 'client_id'
-        }
+        },
+        null,
+        callbackSpy
       );
 
-      expect(result).to.have.property('message', 'missing/undefined oAuthClientSecret configuration parameter');
+      expect(callbackSpy).to.be.calledWith('missing/undefined oAuthClientSecret configuration parameter');
     });
 
-    it('should throw an CancelRequestConsumerError if the oAuthClientSecret configuration parameter is an EMPTY string', () => {
-      const result = kinesisHandlerFunc(
+    it('should catch a CancelRequestConsumerError and return the callback with the error message if the oAuthClientSecret configuration parameter is an EMPTY string', () => {
+      kinesisHandlerFunc(
         event.Records,
         {
           oAuthProviderUrl: 'http://oauthurl.org',
           oAuthClientId: 'client_id',
           oAuthClientSecret: ' '
-        }
+        },
+        null,
+        callbackSpy
       );
 
-      expect(result).to.have.property('message', 'missing/undefined oAuthClientSecret configuration parameter');
+      expect(callbackSpy).to.be.calledWith('missing/undefined oAuthClientSecret configuration parameter');
     });
 
-    it('should throw an CancelRequestConsumerError if the oAuthProviderScope configuration parameter is missing', () => {
-      const result = kinesisHandlerFunc(
+    it('should catch a CancelRequestConsumerError and return the callback with the error message if the oAuthProviderScope configuration parameter is missing', () => {
+      kinesisHandlerFunc(
         event.Records,
         {
           oAuthProviderUrl: 'http://oauthurl.org',
           oAuthClientId: 'client_id',
           oAuthClientSecret: 'secret'
-        }
+        },
+        null,
+        callbackSpy
       );
 
-      expect(result).to.have.property('message', 'missing/undefined oAuthProviderScope configuration parameter');
+      expect(callbackSpy).to.be.calledWith('missing/undefined oAuthProviderScope configuration parameter');
     });
 
-    it('should throw an CancelRequestConsumerError if the oAuthProviderScope configuration parameter is an EMPTY string', () => {
-      const result = kinesisHandlerFunc(
+    it('should catch a CancelRequestConsumerError and return the callback with the error message if the oAuthProviderScope configuration parameter is an EMPTY string', () => {
+      kinesisHandlerFunc(
         event.Records,
         {
           oAuthProviderUrl: 'http://oauthurl.org',
           oAuthClientId: 'client_id',
           oAuthClientSecret: 'secret',
           oAuthProviderScope: ' '
-        }
+        },
+        null,
+        callbackSpy
       );
 
-      expect(result).to.have.property('message', 'missing/undefined oAuthProviderScope configuration parameter');
+      expect(callbackSpy).to.be.calledWith('missing/undefined oAuthProviderScope configuration parameter');
     });
 
-    it('should throw an CancelRequestConsumerError if the nyplDataApiBaseUrl configuration parameter is missing', () => {
-      const result = kinesisHandlerFunc(
+    it('should catch a CancelRequestConsumerError and return the callback with the error message if the nyplDataApiBaseUrl configuration parameter is missing', () => {
+      kinesisHandlerFunc(
         event.Records,
         {
           oAuthProviderUrl: 'http://oauthurl.org',
           oAuthClientId: 'client_id',
           oAuthClientSecret: 'secret',
           oAuthProviderScope: 'scope'
-        }
+        },
+        null,
+        callbackSpy
       );
 
-      expect(result).to.have.property('message', 'missing/undefined nyplDataApiBaseUrl configuration parameter');
+      expect(callbackSpy).to.be.calledWith('missing/undefined nyplDataApiBaseUrl configuration parameter');
     });
 
-    it('should throw an CancelRequestConsumerError if the nyplDataApiBaseUrl configuration parameter is an EMPTY string', () => {
-      const result = kinesisHandlerFunc(
+    it('should catch a CancelRequestConsumerError and return the callback with the error message if the nyplDataApiBaseUrl configuration parameter is an EMPTY string', () => {
+      kinesisHandlerFunc(
         event.Records,
         {
           oAuthProviderUrl: 'http://oauthurl.org',
@@ -212,14 +240,16 @@ describe('CancelRequestConsumer Lambda: Handle Kinesis Stream Input', () => {
           oAuthClientSecret: 'secret',
           oAuthProviderScope: 'scope',
           nyplDataApiBaseUrl: ''
-        }
+        },
+        null,
+        callbackSpy
       );
 
-      expect(result).to.have.property('message', 'missing/undefined nyplDataApiBaseUrl configuration parameter');
+      expect(callbackSpy).to.be.calledWith('missing/undefined nyplDataApiBaseUrl configuration parameter');
     });
 
-    it('should throw an CancelRequestConsumerError if the recapCancelRequestSchema configuration parameter is missing', () => {
-      const result = kinesisHandlerFunc(
+    it('should catch a CancelRequestConsumerError and return the callback with the error message if the recapCancelRequestSchema configuration parameter is missing', () => {
+      kinesisHandlerFunc(
         event.Records,
         {
           oAuthProviderUrl: 'http://oauthurl.org',
@@ -227,14 +257,16 @@ describe('CancelRequestConsumer Lambda: Handle Kinesis Stream Input', () => {
           oAuthClientSecret: 'secret',
           oAuthProviderScope: 'scope',
           nyplDataApiBaseUrl: 'http://nyplbaseurl.org'
-        }
+        },
+        null,
+        callbackSpy
       );
 
-      expect(result).to.have.property('message', 'missing/undefined recapCancelRequestSchema configuration parameter');
+      expect(callbackSpy).to.be.calledWith('missing/undefined recapCancelRequestSchema configuration parameter');
     });
 
-    it('should throw an CancelRequestConsumerError if the recapCancelRequestSchema configuration parameter is an EMPTY string', () => {
-      const result = kinesisHandlerFunc(
+    it('should catch a CancelRequestConsumerError and return the callback with the error message if the recapCancelRequestSchema configuration parameter is an EMPTY string', () => {
+      kinesisHandlerFunc(
         event.Records,
         {
           oAuthProviderUrl: 'http://oauthurl.org',
@@ -243,14 +275,16 @@ describe('CancelRequestConsumer Lambda: Handle Kinesis Stream Input', () => {
           oAuthProviderScope: 'scope',
           nyplDataApiBaseUrl: 'http://nyplbaseurl.org',
           recapCancelRequestSchema: ''
-        }
+        },
+        null,
+        callbackSpy
       );
 
-      expect(result).to.have.property('message', 'missing/undefined recapCancelRequestSchema configuration parameter');
+      expect(callbackSpy).to.be.calledWith('missing/undefined recapCancelRequestSchema configuration parameter');
     });
 
-    it('should throw an CancelRequestConsumerError if the nyplCheckinRequestApiUrl configuration parameter is missing', () => {
-      const result = kinesisHandlerFunc(
+    it('should catch a CancelRequestConsumerError and return the callback with the error message if the nyplCheckinRequestApiUrl configuration parameter is missing', () => {
+      kinesisHandlerFunc(
         event.Records,
         {
           oAuthProviderUrl: 'http://oauthurl.org',
@@ -259,14 +293,16 @@ describe('CancelRequestConsumer Lambda: Handle Kinesis Stream Input', () => {
           oAuthProviderScope: 'scope',
           nyplDataApiBaseUrl: 'http://nyplbaseurl.org',
           recapCancelRequestSchema: 'cancelRequestSchema'
-        }
+        },
+        null,
+        callbackSpy
       );
 
-      expect(result).to.have.property('message', 'missing/undefined nyplCheckinRequestApiUrl configuration parameter');
+      expect(callbackSpy).to.be.calledWith('missing/undefined nyplCheckinRequestApiUrl configuration parameter');
     });
 
-    it('should throw an CancelRequestConsumerError if the nyplCheckinRequestApiUrl configuration parameter is an EMPTY string', () => {
-      const result = kinesisHandlerFunc(
+    it('should catch a CancelRequestConsumerError and return the callback with the error message if the nyplCheckinRequestApiUrl configuration parameter is an EMPTY string', () => {
+      kinesisHandlerFunc(
         event.Records,
         {
           oAuthProviderUrl: 'http://oauthurl.org',
@@ -276,14 +312,16 @@ describe('CancelRequestConsumer Lambda: Handle Kinesis Stream Input', () => {
           nyplDataApiBaseUrl: 'http://nyplbaseurl.org',
           recapCancelRequestSchema: 'cancelRequestSchema',
           nyplCheckinRequestApiUrl: ' '
-        }
+        },
+        null,
+        callbackSpy
       );
 
-      expect(result).to.have.property('message', 'missing/undefined nyplCheckinRequestApiUrl configuration parameter');
+      expect(callbackSpy).to.be.calledWith('missing/undefined nyplCheckinRequestApiUrl configuration parameter');
     });
 
-    it('should throw an CancelRequestConsumerError if the nyplCheckoutRequestApiUrl configuration parameter is missing', () => {
-      const result = kinesisHandlerFunc(
+    it('should catch a CancelRequestConsumerError and return the callback with the error message if the nyplCheckoutRequestApiUrl configuration parameter is missing', () => {
+      kinesisHandlerFunc(
         event.Records,
         {
           oAuthProviderUrl: 'http://oauthurl.org',
@@ -293,14 +331,16 @@ describe('CancelRequestConsumer Lambda: Handle Kinesis Stream Input', () => {
           nyplDataApiBaseUrl: 'http://nyplbaseurl.org',
           recapCancelRequestSchema: 'cancelRequestSchema',
           nyplCheckinRequestApiUrl: 'http://checkinurl.org'
-        }
+        },
+        null,
+        callbackSpy
       );
 
-      expect(result).to.have.property('message', 'missing/undefined nyplCheckoutRequestApiUrl configuration parameter');
+      expect(callbackSpy).to.be.calledWith('missing/undefined nyplCheckoutRequestApiUrl configuration parameter');
     });
 
-    it('should throw an CancelRequestConsumerError if the nyplCheckoutRequestApiUrl configuration parameter is an EMPTY string', () => {
-      const result = kinesisHandlerFunc(
+    it('should catch a CancelRequestConsumerError and return the callback with the error message if the nyplCheckoutRequestApiUrl configuration parameter is an EMPTY string', () => {
+      kinesisHandlerFunc(
         event.Records,
         {
           oAuthProviderUrl: 'http://oauthurl.org',
@@ -311,10 +351,12 @@ describe('CancelRequestConsumer Lambda: Handle Kinesis Stream Input', () => {
           recapCancelRequestSchema: 'cancelRequestSchema',
           nyplCheckinRequestApiUrl: 'http://checkinurl.org',
           nyplCheckoutRequestApiUrl: ''
-        }
+        },
+        null,
+        callbackSpy
       );
 
-      expect(result).to.have.property('message', 'missing/undefined nyplCheckoutRequestApiUrl configuration parameter');
+      expect(callbackSpy).to.be.calledWith('missing/undefined nyplCheckoutRequestApiUrl configuration parameter');
     });
 
     it('should call the handleKinesisAsyncProcessing function after all required parameters have been validated', () => {
