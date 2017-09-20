@@ -1,7 +1,7 @@
 # Cancel Request Consumer Lambda
 [![Coverage Status](https://coveralls.io/repos/github/NYPL/cancel-request-consumer/badge.svg?branch=master)](https://coveralls.io/github/NYPL/cancel-request-consumer?branch=master)
 [![Build Status](https://travis-ci.org/NYPL/cancel-request-consumer.svg?branch=master)](https://travis-ci.org/NYPL/cancel-request-consumer)
-[![Coverage Status](https://coveralls.io/repos/github/NYPL/cancel-request-consumer/badge.svg?branch=master)](https://coveralls.io/github/NYPL/cancel-request-consumer?branch=master)
+[![Dependency Status](https://gemnasium.com/badges/github.com/NYPL/cancel-request-consumer.svg)](https://gemnasium.com/github.com/NYPL/cancel-request-consumer)
 
 An AWS Lambda written in Node JS (ES7 via Babel), responsible for listening to a stream of Cancelled requests and performing the check-out/check-in process to cancel the requested item.
 
