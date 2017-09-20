@@ -1,7 +1,7 @@
 /* eslint-disable semi */
 import NyplStreamsClient from '@nypl/nypl-streams-client';
 import { handleAuthentication, fetchAccessToken } from './src/helpers/OAuthHelper';
-import { handleCancelItemPostRequests } from './src/helpers/ApiHelper';
+import ApiHelper from './src/helpers/ApiHelper';
 import Cache from './src/cache/CacheFactory';
 import CancelRequestConsumerError from './src/helpers/ErrorHelper';
 
@@ -33,8 +33,8 @@ exports.handleKinesisAsyncProcessing = async function(records, opts, context, ca
       console.log('using an existing access token from Cache');
     }
 
-    let processedCheckoutItems = await handleCancelItemPostRequests(decodedRecords, 'checkout-service', nyplCheckoutRequestApiUrl, Cache.getToken());
-    let processedCheckinItems = await handleCancelItemPostRequests(processedCheckoutItems, 'checkin-service', nyplCheckinRequestApiUrl, Cache.getToken());
+    let processedCheckoutItems = await ApiHelper.handleCancelItemPostRequests(decodedRecords, 'checkout-service', nyplCheckoutRequestApiUrl, Cache.getToken());
+    let processedCheckinItems = await ApiHelper.handleCancelItemPostRequests(processedCheckoutItems, 'checkin-service', nyplCheckinRequestApiUrl, Cache.getToken());
     console.log(processedCheckinItems);
 
   } catch (e) {
