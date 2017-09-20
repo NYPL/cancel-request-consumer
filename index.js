@@ -1,7 +1,8 @@
 /* eslint-disable semi */
 import NyplStreamsClient from '@nypl/nypl-streams-client';
 import { handleAuthentication, fetchAccessToken } from './src/helpers/OAuthHelper';
-import ApiHelper from './src/helpers/ApiHelper';
+import { handleCancelItemPostRequests } from './src/helpers/ApiHelper';
+import Cache from './src/cache/CacheFactory';
 import CancelRequestConsumerError from './src/helpers/ErrorHelper';
 
 exports.handleKinesisAsyncProcessing = async function(records, opts, context, callback) {
@@ -20,24 +21,29 @@ exports.handleKinesisAsyncProcessing = async function(records, opts, context, ca
 
     const streamsClient = new NyplStreamsClient({ nyplDataApiClientBase: nyplDataApiBaseUrl });
 
-    const [ accessTokenObject, decodedRecords ] = await Promise.all([
-      handleAuthentication(null, fetchAccessToken(oAuthProviderUrl, oAuthClientId, oAuthClientSecret, oAuthProviderScope)),
+    const [ tokenResponse, decodedRecords ] = await Promise.all([
+      handleAuthentication(Cache.getToken(), fetchAccessToken(oAuthProviderUrl, oAuthClientId, oAuthClientSecret, oAuthProviderScope)),
       streamsClient.decodeData(recapCancelRequestSchema, records.map(i => i.kinesis.data))
     ]);
 
-    const { token } = accessTokenObject;
+    if (tokenResponse.tokenType === 'new-token') {
+      console.log('setting a new access token from OAuth Service');
+      Cache.setToken(tokenResponse.token);
+    } else {
+      console.log('using an existing access token from Cache');
+    }
 
-    let processedCheckoutItems = await ApiHelper.handleCancelItemPostRequests(decodedRecords, 'checkout-service', nyplCheckoutRequestApiUrl, token);
-    let processedCheckinItems = await ApiHelper.handleCancelItemPostRequests(processedCheckoutItems, 'checkin-service', nyplCheckinRequestApiUrl, token);
+    let processedCheckoutItems = await handleCancelItemPostRequests(decodedRecords, 'checkout-service', nyplCheckoutRequestApiUrl, Cache.getToken());
+    let processedCheckinItems = await handleCancelItemPostRequests(processedCheckoutItems, 'checkin-service', nyplCheckinRequestApiUrl, Cache.getToken());
     console.log(processedCheckinItems);
-    // return callback(null, processedCheckinItems);
-    //let singleRecord = decodedRecords[0];
 
-    // console.log(accessTokenObject);
-
-    //let result = ApiHelper.postCheckOutItem('https://api.nypltech.org/api/v0.1/checkout-requests', accessTokenObject.token, singleRecord, null);
-    // console.log(result);
   } catch (e) {
+    if (e.name === 'AvroValidationError') {
+      console.log(e);
+      console.log('a fatal/non-recoverable AvroValidationError occured which prohibits decoding the kinesis stream; the CancelRequestConsumer Lambda will NOT restart');
+      return false;
+    }
+
     console.log('handleKinesisAsyncLogic', e);
     // return callback(e);
   }
