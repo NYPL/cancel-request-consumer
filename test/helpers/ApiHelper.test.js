@@ -179,6 +179,26 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
 
       return result.should.be.rejectedWith(CancelRequestConsumerError, /the token string parameter is not defined or empty/);
     });
+
+    it('should call the handleBatchAsyncPostRequests when serviceType is checkin-service', () => {
+      let handleBatchAsyncPostRequestsStub = sinon.stub(ApiHelper, 'handleBatchAsyncPostRequests');
+
+      ApiHelper.handleCancelItemPostRequests([{}], 'checkin-service', 'http://checkin-service.api.org', 'token');
+
+      expect(handleBatchAsyncPostRequestsStub).to.be.called;
+
+      handleBatchAsyncPostRequestsStub.restore();
+    });
+
+    it('should call the handleBatchAsyncPostRequests when serviceType is checkout-service', () => {
+      let handleBatchAsyncPostRequestsStub = sinon.stub(ApiHelper, 'handleBatchAsyncPostRequests');
+
+      ApiHelper.handleCancelItemPostRequests([{}], 'checkout-service', 'http://checkout-service.api.org', 'token');
+
+      expect(handleBatchAsyncPostRequestsStub).to.be.called;
+
+      handleBatchAsyncPostRequestsStub.restore();
+    });
   });
 
   describe('postCheckinItem(apiUrl, token, errorHandlerFn, item, callback) function', () => {
