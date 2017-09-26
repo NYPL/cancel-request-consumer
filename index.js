@@ -34,17 +34,20 @@ exports.handleKinesisAsyncProcessing = async function(records, opts, context, ca
     }
 
     let processedCheckoutItems = await ApiHelper.handleCancelItemPostRequests(decodedRecords, 'checkout-service', nyplCheckoutRequestApiUrl, Cache.getToken());
+    // console.log(processedCheckoutItems);
     let processedCheckinItems = await ApiHelper.handleCancelItemPostRequests(processedCheckoutItems, 'checkin-service', nyplCheckinRequestApiUrl, Cache.getToken());
     console.log(processedCheckinItems);
 
   } catch (e) {
+    console.log('handleKinesisAsyncLogic', e);
+
     if (e.name === 'AvroValidationError') {
       console.log(e);
       console.log('a fatal/non-recoverable AvroValidationError occured which prohibits decoding the kinesis stream; the CancelRequestConsumer Lambda will NOT restart');
       return false;
     }
 
-    console.log('handleKinesisAsyncLogic', e);
+    // console.log('handleKinesisAsyncLogic', e);
     // return callback(e);
   }
 };
