@@ -14,12 +14,15 @@ chai.use(chaiAsPromised);
 
 describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
   let mock;
+  let generateErrorResponseObjectStub;
 
   beforeEach(function() {
+    generateErrorResponseObjectStub = sinon.stub(ApiHelper, 'generateErrorResponseObject');
     mock = new MockAdapter(axios);
   });
 
   afterEach(function() {
+    generateErrorResponseObjectStub.restore();
     mock.reset();
   });
 
@@ -51,9 +54,11 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
 
   describe('generateCheckoutApiModel(object) function', () => {
     it('should return the minimum required object properties', () => {
-      const checkoutApiModel = ApiHelper.generateCheckoutApiModel({ patronBarcode: 'pbarcode', itemBarcode: 'ibarcode' });
+      const checkoutApiModel = ApiHelper.generateCheckoutApiModel({ id: 123, patronBarcode: 'pbarcode', itemBarcode: 'ibarcode' });
 
       return checkoutApiModel.should.deep.equal({
+        cancelRequestId: 123,
+        jobId: null,
         patronBarcode: 'pbarcode',
         itemBarcode: 'ibarcode',
         owningInstitutionId: null,
@@ -63,6 +68,8 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
 
     it('should return the correct object properties when the optional fields are defined', () => {
       const checkoutApiModel = ApiHelper.generateCheckoutApiModel({
+        id: 123,
+        jobId: 'abc',
         patronBarcode: 'pbarcode',
         itemBarcode: 'ibarcode',
         owningInstitutionId: 'NYPL',
@@ -70,6 +77,8 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
       });
 
       return checkoutApiModel.should.deep.equal({
+        cancelRequestId: 123,
+        jobId: 'abc',
         patronBarcode: 'pbarcode',
         itemBarcode: 'ibarcode',
         owningInstitutionId: 'NYPL',
@@ -79,7 +88,35 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
   });
 
   describe('generateCheckinApiModel(object) function', () => {
+    it('should return the minimum required object properties', () => {
+      const checkinApiModel = ApiHelper.generateCheckinApiModel({
+        id: 123,
+        itemBarcode: 'abc'
+      });
 
+      return checkinApiModel.should.deep.equal({
+        cancelRequestId: 123,
+        jobId: null,
+        itemBarcode: 'abc',
+        owningInstitutionId: null
+      });
+    });
+
+    it('should return the correct object properties when the optional fields are defined', () => {
+      const checkinApiModel = ApiHelper.generateCheckinApiModel({
+        id: 123,
+        itemBarcode: 'abc',
+        jobId: 'exampleJobId',
+        owningInstitutionId: 'NYPL'
+      });
+
+      return checkinApiModel.should.deep.equal({
+        cancelRequestId: 123,
+        jobId: 'exampleJobId',
+        itemBarcode: 'abc',
+        owningInstitutionId: 'NYPL'
+      });
+    });
   });
 
   describe('handleCancelItemPostRequests(items, type, apiUrl) function', () => {
@@ -201,255 +238,102 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
     });
   });
 
-  describe('postCheckinItem(apiUrl, token, errorHandlerFn, item, callback) function', () => {
-    it('should reject the Promise if the item (object) is NULL', () => {
-      const result = ApiHelper.postCheckInItem(
-        'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
-        null,
-        null
-      );
-
-      return result.should.be.rejectedWith(CancelRequestConsumerError, /unable to execute POST request to checkin-service; itemBarcode must be defined and checkoutProccessed must be true/);
-    });
-
-    it('should reject the Promise if the item (object) is UNDEFINED', () => {
-      const result = ApiHelper.postCheckInItem(
-        'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
-        null,
-        undefined
-      );
-
-      return result.should.be.rejectedWith(CancelRequestConsumerError, /unable to execute POST request to checkin-service; itemBarcode must be defined and checkoutProccessed must be true/);
-    });
-
-    it('should reject the Promise if the item (object) is missing the itemBarcode property', () => {
-      const result = ApiHelper.postCheckInItem(
-        'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
-        null,
-        { patronBarcode: 'test' }
-      );
-
-      return result.should.be.rejectedWith(CancelRequestConsumerError, /unable to execute POST request to checkin-service; itemBarcode must be defined and checkoutProccessed must be true/);
-    });
-
-    it('should reject the Promise if the item (object) itemBarcode property is NULL', () => {
-      const result = ApiHelper.postCheckInItem(
-        'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
-        null,
-        { patronBarcode: 'test', itemBarcode: null }
-      );
-
-      return result.should.be.rejectedWith(CancelRequestConsumerError, /unable to execute POST request to checkin-service; itemBarcode must be defined and checkoutProccessed must be true/);
-    });
-
-    it('should reject the Promise if the item (object) itemBarcode property is an empty string', () => {
-      const result = ApiHelper.postCheckInItem(
-        'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
-        null,
-        { patronBarcode: 'test', itemBarcode: ' ' }
-      );
-
-      return result.should.be.rejectedWith(CancelRequestConsumerError, /unable to execute POST request to checkin-service; itemBarcode must be defined and checkoutProccessed must be true/);
-    });
-
-    it('should reject the Promise if the item (object) checkoutProccessed property is NULL', () => {
-      const result = ApiHelper.postCheckInItem(
-        'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
-        null,
-        { itemBarcode: 'barcode', checkoutProccessed: null }
-      );
-
-      return result.should.be.rejectedWith(CancelRequestConsumerError, /unable to execute POST request to checkin-service; itemBarcode must be defined and checkoutProccessed must be true/);
-    });
-
-    it('should reject the Promise if the item (object) checkoutProccessed property is undefined', () => {
-      const result = ApiHelper.postCheckInItem(
-        'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
-        null,
-        { itemBarcode: 'barcode', checkoutProccessed: undefined }
-      );
-
-      return result.should.be.rejectedWith(CancelRequestConsumerError, /unable to execute POST request to checkin-service; itemBarcode must be defined and checkoutProccessed must be true/);
-    });
-
-    it('should reject the Promise if the item (object) checkoutProccessed property is false', () => {
-      const result = ApiHelper.postCheckInItem(
-        'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
-        null,
-        { itemBarcode: 'barcode', checkoutProccessed: false }
-      );
-
-      return result.should.be.rejectedWith(CancelRequestConsumerError, /unable to execute POST request to checkin-service; itemBarcode must be defined and checkoutProccessed must be true/);
-    });
-
-    it('should exectue the callback function with the second parameter being the successful item response obtained by the CheckIn Service', () => {
-      let callbackSpy = sinon.spy();
-
-      mock.onPost().reply(
-        200,
-        {
-          data: {
-            patronBarcode: 'test',
-            itemBarcode: 'barcode',
-            success: true
-          }
-        }
-      );
-
-      const result = ApiHelper.postCheckInItem(
-        'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
-        function(err, item, callback) {},
-        { patronBarcode: 'test', itemBarcode: 'barcode', checkoutProccessed: true },
-        callbackSpy
-      );
-
-      return result.then(data => {
-        expect(callbackSpy).to.have.been.calledWith(
-          null,
-          {
-            checkoutProccessed: true,
-            checkinProcessed: true,
-            itemBarcode: "barcode",
-            patronBarcode: "test",
-            success: true
-          }
-        );
-      });
-    });
-
-    it('should exectue the callback function with the second parameter being the failure item response obtained by the CheckIn Service when response.data.data is not defined', () => {
-      let callbackSpy = sinon.spy();
-
-      mock.onPost().reply(
-        200,
-        {
-          otherKey: {}
-        }
-      );
-
-      const result = ApiHelper.postCheckInItem(
-        'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
-        function(err, item, callback) {},
-        { patronBarcode: 'test', itemBarcode: 'barcode', checkoutProccessed: true },
-        callbackSpy
-      );
-
-      return result.then(data => {
-        expect(callbackSpy).to.have.been.calledWith(
-          null,
-          {
-            checkoutProccessed: true,
-            checkinProcessed: false,
-            itemBarcode: "barcode",
-            patronBarcode: "test"
-          }
-        );
-      });
-    });
-
-    it('should exectue the errorCallback handler function on a failure response', () => {
-      let errorCallbackSpy = sinon.spy();
-      let callbackSpy = sinon.spy();
-
-      mock.onPost().reply(404);
-
-      const result = ApiHelper.postCheckInItem(
-        'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
-        errorCallbackSpy,
-        { patronBarcode: 'test', itemBarcode: 'barcode', checkoutProccessed: true },
-        callbackSpy
-      );
-
-      return result.catch(error => {
-        expect(errorCallbackSpy).to.have.been.calledWith(
-          error,
-          {
-            checkoutProccessed: true,
-            checkinProcessed: false,
-            itemBarcode: "barcode",
-            patronBarcode: "test"
-          },
-          callbackSpy
-        );
-      });
-    });
-  });
-
   describe('postCheckOutItem(apiUrl, token, item, callback, errorHandlerFn) function', () => {
-    it('should reject the Promise if the item (object) is NULL', () => {
-      const result = ApiHelper.postCheckOutItem(
+    let callbackSpy = sinon.spy();
+    let errorHandlerFnSpy = sinon.spy();
+
+    it('should call the callback with a NULL value if the item (object) is NULL', () => {
+      ApiHelper.postCheckOutItem(
         'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
-        null
+        errorHandlerFnSpy,
+        null,
+        callbackSpy
       );
 
-      return result.should.be.rejectedWith(CancelRequestConsumerError, /unable to execute POST request to checkout-service; patronBarcode and itemBarcode must be defined/);
+      expect(callbackSpy).to.have.been.calledWith(null);
     });
 
-    it('should reject the Promise if the item (object) is UNDEFINED', () => {
-      const result = ApiHelper.postCheckOutItem(
+    it('should call the callback with a NULL value if the item (object) is UNDEFINED', () => {
+      ApiHelper.postCheckOutItem(
         'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
-        undefined
+        errorHandlerFnSpy,
+        undefined,
+        callbackSpy
       );
 
-      return result.should.be.rejectedWith(CancelRequestConsumerError, /unable to execute POST request to checkout-service; patronBarcode and itemBarcode must be defined/);
+      expect(callbackSpy).to.have.been.calledWith(null);
     });
 
-    it('should reject the Promise if the item (object) is missing the patronBarcode property', () => {
-      const result = ApiHelper.postCheckOutItem(
+    it('should call the callback function with (null, item) and set checkoutProccessed to FALSE if the item is missing the patronBarcode property', () => {
+      let dummyItem = { id: 123, itemBarcode: 'test' };
+
+      ApiHelper.postCheckOutItem(
         'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
-        { itemBarcode: 'test' }
+        errorHandlerFnSpy,
+        dummyItem,
+        callbackSpy
       );
 
-      return result.should.be.rejectedWith(CancelRequestConsumerError, /unable to execute POST request to checkout-service; patronBarcode and itemBarcode must be defined/);
+      expect(callbackSpy).to.have.been.calledWith(null, { id: 123, itemBarcode: 'test', checkoutProccessed: false });
     });
 
-    it('should reject the Promise if the item (object) patronBarcode property is NULL', () => {
-      const result = ApiHelper.postCheckOutItem(
+    it('should call the callback function with (null, item) and set checkoutProccessed to FALSE if the item patronBarcode property is NULL', () => {
+      ApiHelper.postCheckOutItem(
         'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
-        { patronBarcode: null, itemBarcode: 'test' }
+        errorHandlerFnSpy,
+        { id: 123, patronBarcode: null, itemBarcode: 'test' },
+        callbackSpy
       );
 
-      return result.should.be.rejectedWith(CancelRequestConsumerError, /unable to execute POST request to checkout-service; patronBarcode and itemBarcode must be defined/);
+      expect(callbackSpy).to.have.been.calledWith(null, { id: 123, itemBarcode: 'test', checkoutProccessed: false });
     });
 
-    it('should reject the Promise if the item (object) patronBarcode property is an empty string', () => {
-      const result = ApiHelper.postCheckOutItem(
+    it('should call the callback function with (null, item) and set checkoutProccessed to FALSE if the item patronBarcode property is an empty string', () => {
+      ApiHelper.postCheckOutItem(
         'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
-        { patronBarcode: ' ', itemBarcode: 'test' }
+        errorHandlerFnSpy,
+        { id: 123, patronBarcode: '', itemBarcode: 'test' },
+        callbackSpy
       );
 
-      return result.should.be.rejectedWith(CancelRequestConsumerError, /unable to execute POST request to checkout-service; patronBarcode and itemBarcode must be defined/);
+      expect(callbackSpy).to.have.been.calledWith(null, { id: 123, itemBarcode: 'test', checkoutProccessed: false });
     });
 
-    it('should reject the Promise if the item (object) is missing the itemBarcode property', () => {
-      const result = ApiHelper.postCheckOutItem(
+    it('should call the callback function with (null, item) and set checkoutProccessed to FALSE if the item is missing the itemBarcode property', () => {
+      ApiHelper.postCheckOutItem(
         'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
-        { patronBarcode: 'test' }
+        errorHandlerFnSpy,
+        { id: 123, patronBarcode: 'test' },
+        callbackSpy
       );
 
-      return result.should.be.rejectedWith(CancelRequestConsumerError, /unable to execute POST request to checkout-service; patronBarcode and itemBarcode must be defined/);
+      expect(callbackSpy).to.have.been.calledWith(null, { id: 123, patronBarcode: 'test', checkoutProccessed: false });
     });
 
-    it('should reject the Promise if the item (object) itemBarcode property is NULL', () => {
-      const result = ApiHelper.postCheckOutItem(
+    it('should call the callback function with (null, item) and set checkoutProccessed to FALSE if the item itemBarcode property is NULL', () => {
+      ApiHelper.postCheckOutItem(
         'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
-        { patronBarcode: 'test', itemBarcode: null }
+        errorHandlerFnSpy,
+        { id: 123, patronBarcode: 'test', itemBarcode: null },
+        callbackSpy
       );
 
-      return result.should.be.rejectedWith(CancelRequestConsumerError, /unable to execute POST request to checkout-service; patronBarcode and itemBarcode must be defined/);
+      expect(callbackSpy).to.have.been.calledWith(null, { id: 123, patronBarcode: 'test', checkoutProccessed: false });
     });
 
-    it('should reject the Promise if the item (object) itemBarcode property is an empty string', () => {
-      const result = ApiHelper.postCheckOutItem(
+    it('should call the callback function with (null, item) and set checkoutProccessed to FALSE if the item itemBarcode property is an empty string', () => {
+      ApiHelper.postCheckOutItem(
         'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
-        { patronBarcode: 'test', itemBarcode: ' ' }
+        errorHandlerFnSpy,
+        { id: 123, patronBarcode: 'test', itemBarcode: ' ' },
+        callbackSpy
       );
 
-      return result.should.be.rejectedWith(CancelRequestConsumerError, /unable to execute POST request to checkout-service; patronBarcode and itemBarcode must be defined/);
+      expect(callbackSpy).to.have.been.calledWith(null, { id: 123, patronBarcode: 'test', checkoutProccessed: false });
     });
 
     it('should exectue the callback function with the second parameter being the successful item response obtained by the CheckOut Service', () => {
-      let callbackSpy = sinon.spy();
+      let cbSpy = sinon.spy();
 
       mock.onPost().reply(
         200,
@@ -464,13 +348,13 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
 
       const result = ApiHelper.postCheckOutItem(
         'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
-        function(err, item, callback) {},
-        { patronBarcode: 'test', itemBarcode: 'barcode' },
-        callbackSpy
+        null,
+        { id: 123, patronBarcode: 'test', itemBarcode: 'barcode' },
+        cbSpy
       );
 
       return result.then(data => {
-        expect(callbackSpy).to.have.been.calledWith(
+        expect(cbSpy).to.have.been.calledWithMatch(
           null,
           {
             checkoutProccessed: true,
@@ -480,10 +364,12 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
           }
         );
       });
+
+      cbSpy.restore();
     });
 
     it('should exectue the callback function with the second parameter being the failure item response obtained by the CheckOut Service when response.data.data is not defined', () => {
-      let callbackSpy = sinon.spy();
+      let cbSpy = sinon.spy();
 
       mock.onPost().reply(
         200,
@@ -494,13 +380,13 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
 
       const result = ApiHelper.postCheckOutItem(
         'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
-        function(err, item, callback) {},
-        { patronBarcode: 'test', itemBarcode: 'barcode' },
-        callbackSpy
+        null,
+        { id: 123, patronBarcode: 'test', itemBarcode: 'barcode' },
+        cbSpy
       );
 
       return result.then(data => {
-        expect(callbackSpy).to.have.been.calledWith(
+        expect(cbSpy).to.have.been.calledWithMatch(
           null,
           {
             checkoutProccessed: false,
@@ -509,32 +395,204 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
           }
         );
       });
+
+      cbSpy.restore();
     });
 
-    it('should exectue the errorCallback handler function on a failure response', () => {
-      let errorCallbackSpy = sinon.spy();
-      let callbackSpy = sinon.spy();
+    it('should exectue the errorCallback handler function on a 404 failure response', () => {
+      let errorCbSpy = sinon.spy();
+      let cbSpy = sinon.spy();
 
       mock.onPost().reply(404);
 
       const result = ApiHelper.postCheckOutItem(
         'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
-        errorCallbackSpy,
-        { patronBarcode: 'test', itemBarcode: 'barcode' },
-        callbackSpy
+        errorCbSpy,
+        { id: 123, patronBarcode: 'test', itemBarcode: 'barcode' },
+        cbSpy
       );
 
       return result.catch(error => {
-        expect(errorCallbackSpy).to.have.been.calledWith(
+        expect(generateErrorResponseObjectStub).to.have.been.called;
+
+        expect(errorCbSpy).to.have.been.calledWith(
           error,
+          'checkout-service',
           {
+            id: 123,
             checkoutProccessed: false,
             itemBarcode: "barcode",
             patronBarcode: "test"
           },
-          callbackSpy
+          cbSpy
         );
       });
+
+      errorCbSpy.restore();
+      cbSpy.restore();
+    });
+
+    it('should exectue the errorCallback handler function on a TIMEOUT failure response', () => {
+      let errorCbSpy = sinon.spy();
+      let cbSpy = sinon.spy();
+
+      mock.onPost().timeout();
+
+      const result = ApiHelper.postCheckOutItem(
+        'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
+        errorCbSpy,
+        { id: 123, patronBarcode: 'test', itemBarcode: 'barcode' },
+        cbSpy
+      );
+
+      return result.catch(error => {
+        expect(generateErrorResponseObjectStub).to.have.been.called;
+
+        expect(errorCbSpy).to.have.been.calledWith(
+          error,
+          'checkout-service',
+          {
+            id: 123,
+            checkoutProccessed: false,
+            itemBarcode: "barcode",
+            patronBarcode: "test"
+          },
+          cbSpy
+        );
+      });
+
+      errorCbSpy.restore();
+      cbSpy.restore();
+    });
+  });
+
+  describe('postCheckinItem(apiUrl, token, errorHandlerFn, item, callback) function', () => {
+    let callbackSpy = sinon.spy();
+    let errorHandlerFnSpy = sinon.spy();
+
+    it('should call the callback with the error param as NULL and result as item if the checkoutProccessed is NOT defined', () => {
+      ApiHelper.postCheckInItem(
+        'https://api.nypltech.org/api/v0.1/checkin-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
+        errorHandlerFnSpy,
+        { id: 123, itemBarcode: 'abc' },
+        callbackSpy
+      );
+
+      expect(callbackSpy).to.have.been.calledWith(null, { id: 123, itemBarcode: 'abc', checkinProccessed: false });
+    });
+
+    it('should call the callback with the error param as NULL and result as item if the checkoutProccessed is FALSE', () => {
+      ApiHelper.postCheckInItem(
+        'https://api.nypltech.org/api/v0.1/checkin-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
+        errorHandlerFnSpy,
+        { id: 123, itemBarcode: 'abc', checkoutProccessed: false },
+        callbackSpy
+      );
+
+      expect(callbackSpy).to.have.been.calledWith(null, { id: 123, itemBarcode: 'abc', checkoutProccessed: false, checkinProccessed: false });
+    });
+
+    it('should exectue the callback function with the second parameter being the successful item response obtained by the CheckIn Service', () => {
+      let cbSpy = sinon.spy();
+
+      mock.onPost().reply(
+        200,
+        {
+          data: {
+            patronBarcode: 'test',
+            itemBarcode: 'barcode',
+            success: true
+          }
+        }
+      );
+
+      const result = ApiHelper.postCheckInItem(
+        'https://api.nypltech.org/api/v0.1/checkin-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
+        null,
+        { id: 123, patronBarcode: 'test', itemBarcode: 'barcode', checkoutProccessed: true },
+        cbSpy
+      );
+
+      return result.then(data => {
+        expect(cbSpy).to.have.been.calledWithMatch(
+          null,
+          {
+            checkoutProccessed: true,
+            checkinProccessed: true,
+            itemBarcode: "barcode",
+            patronBarcode: "test",
+            success: true
+          }
+        );
+      });
+
+      cbSpy.restore();
+    });
+
+    it('should exectue the callback function with the second parameter being the failure item response obtained by the CheckIn Service when response.data.data is not defined', () => {
+      let cbSpy = sinon.spy();
+
+      mock.onPost().reply(
+        200,
+        {
+          otherKey: {}
+        }
+      );
+
+      const result = ApiHelper.postCheckInItem(
+        'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
+        function(err, item, callback) {},
+        { id: 123, patronBarcode: 'test', itemBarcode: 'barcode', checkoutProccessed: true },
+        cbSpy
+      );
+
+      return result.then(data => {
+        expect(cbSpy).to.have.been.calledWithMatch(
+          null,
+          {
+            checkoutProccessed: true,
+            checkinProccessed: false,
+            itemBarcode: "barcode",
+            patronBarcode: "test",
+            id: 123
+          }
+        );
+      });
+
+      cbSpy.restore();
+    });
+
+    it('should exectue the errorCallback handler function on a 404 failure response', () => {
+      let errorCbSpy = sinon.spy();
+      let cbSpy = sinon.spy();
+
+      mock.onPost().reply(404);
+
+      const result = ApiHelper.postCheckInItem(
+        'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
+        errorCbSpy,
+        { id: 123, patronBarcode: 'test', itemBarcode: 'barcode', checkoutProccessed: true },
+        cbSpy
+      );
+
+      return result.catch(error => {
+        expect(generateErrorResponseObjectStub).to.have.been.called;
+
+        expect(errorCbSpy).to.have.been.calledWith(
+          error,
+          {
+            checkoutProccessed: true,
+            checkinProccessed: false,
+            itemBarcode: "barcode",
+            patronBarcode: "test",
+            id: 123
+          },
+          cbSpy
+        );
+      });
+
+      errorCbSpy.restore();
+      cbSpy.restore();
     });
   });
 });

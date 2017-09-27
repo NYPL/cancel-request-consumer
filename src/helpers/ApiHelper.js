@@ -18,6 +18,8 @@ const ApiHelper = {
   },
   generateCheckoutApiModel(object) {
     const {
+      id,
+      jobId = null,
       patronBarcode,
       itemBarcode,
       owningInstitutionId = null,
@@ -25,6 +27,8 @@ const ApiHelper = {
     } = object;
 
     return {
+      cancelRequestId: id,
+      jobId,
       patronBarcode,
       itemBarcode,
       owningInstitutionId,
@@ -33,11 +37,15 @@ const ApiHelper = {
   },
   generateCheckinApiModel(object) {
     const {
+      id,
+      jobId = null,
       itemBarcode,
       owningInstitutionId = null,
     } = object;
 
     return {
+      cancelRequestId: id,
+      jobId,
       itemBarcode,
       owningInstitutionId
     };
