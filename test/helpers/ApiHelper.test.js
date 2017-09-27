@@ -398,6 +398,67 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
     });
   });
 
+  describe('handleBatchAsyncPostRequests(items, processingFn) function', () => {
+    const dummyRecords = [
+      {
+        id: 40,
+        jobId: '07a09c62-3e41-4c55-a08f-a85c8d541941',
+        trackingId: '661',
+        patronBarcode: '23333080894825',
+        itemBarcode: '33433005936434',
+        owningInstitutionId: 'NYPL',
+        processed: false,
+        success: false,
+        createdDate: '2017-09-20T16:07:43-04:00',
+        updatedDate: null
+      },
+      {
+        id: 41,
+        jobId: '9012daa3-fea2-4731-9731-a9e9e1ed99cd',
+        trackingId: '668',
+        patronBarcode: '23333080894825',
+        itemBarcode: '33433000948152',
+        owningInstitutionId: 'NYPL',
+        processed: false,
+        success: false,
+        createdDate: '2017-09-20T16:08:16-04:00',
+        updatedDate: null
+      },
+      {
+        id: 42,
+        jobId: '77c7f97a-9ac4-4b27-a77f-24811b32aa7c',
+        trackingId: '687',
+        patronBarcode: '23333080894825',
+        itemBarcode: '33433000829295',
+        owningInstitutionId: 'NYPL',
+        processed: false,
+        success: false,
+        createdDate: '2017-09-20T16:08:50-04:00',
+        updatedDate: null
+      }
+    ];
+
+    it('should take in N items and apply the processingFn to fire a callback with an error and rejects', () => {
+      const dummyRejectFn = function(item, callback) {
+        return callback(new Error('error'));
+      };
+
+      const result = ApiHelper.handleBatchAsyncPostRequests(dummyRecords, dummyRejectFn);
+
+      expect(result).to.be.rejectedWith('error');
+    });
+
+    it('should take in N items and apply the processingFn to fire a callback with the items and resolve', () => {
+      const dummyResolveFn = function(item, callback) {
+        return callback(null, item);
+      };
+
+      const result = ApiHelper.handleBatchAsyncPostRequests(dummyRecords, dummyResolveFn);
+
+      expect(result).to.be.fulfilled;
+    });
+  })
+
   describe('postCheckOutItem(apiUrl, token, item, callback, errorHandlerFn) function', () => {
     let callbackSpy = sinon.spy();
     let errorHandlerFnSpy = sinon.spy();

@@ -33,10 +33,11 @@ exports.handleKinesisAsyncProcessing = async function(records, opts, context, ca
       console.log('using an existing access token from Cache');
     }
 
+    // console.log(decodedRecords);
     let processedCheckoutItems = await ApiHelper.handleCancelItemPostRequests(decodedRecords, 'checkout-service', nyplCheckoutRequestApiUrl, Cache.getToken());
     // console.log(processedCheckoutItems);
     let processedCheckinItems = await ApiHelper.handleCancelItemPostRequests(processedCheckoutItems, 'checkin-service', nyplCheckinRequestApiUrl, Cache.getToken());
-    console.log(processedCheckinItems);
+    /// console.log(processedCheckinItems);
 
   } catch (e) {
     console.log('handleKinesisAsyncLogic', e);
