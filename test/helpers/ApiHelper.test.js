@@ -119,6 +119,92 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
     });
   });
 
+  describe('generateErrorResponseObject(object) function', () => {
+    it('should return the correct properties when the object contains the response key', () => {
+      generateErrorResponseObjectStub.restore();
+      const errorResponseObject = ApiHelper.generateErrorResponseObject({
+        response: {
+          config: {
+            method: 'POST',
+            url: 'http://apiurl.org',
+            data: 'patron'
+          },
+          status: 404,
+          statusText: 'Not Found',
+          data: {
+            type: 'ncip-error',
+            message: 'Item not found',
+            debugInfo: 'debug'
+          }
+        }
+      });
+
+      return errorResponseObject.should.deep.equal({
+        responseType: 'response',
+        method: 'POST',
+        url: 'http://apiurl.org',
+        payload: 'patron',
+        statusCode: 404,
+        statusText: 'Not Found',
+        errorType: 'ncip-error',
+        errorMessage: 'Item not found',
+        debug: 'debug'
+      });
+    });
+
+    it('should return the correct properties when the object contains the request key', () => {
+      generateErrorResponseObjectStub.restore();
+      const errorResponseObject = ApiHelper.generateErrorResponseObject({
+        request: {
+          _headers: {
+            someKey: 'someValue'
+          }
+        }
+      });
+
+      return errorResponseObject.should.deep.equal({
+        responseType: 'request',
+        debug: {
+          someKey: 'someValue'
+        }
+      });
+    });
+
+    it('should return the default properties when the object does NOT contain a response or request property but, contains a message property', () => {
+      generateErrorResponseObjectStub.restore();
+      const errorResponseObject = ApiHelper.generateErrorResponseObject({ message: 'API error' });
+
+      return errorResponseObject.should.deep.equal({
+        responseType: 'malformed',
+        debug: 'API error'
+      });
+    });
+
+    it('should return the default properties when the object does NOT contain a response, request or message property', () => {
+      generateErrorResponseObjectStub.restore();
+      const errorResponseObject = ApiHelper.generateErrorResponseObject({});
+
+      return errorResponseObject.should.deep.equal({
+        responseType: 'malformed',
+        debug: 'malformed request'
+      });
+    });
+
+    it('should return the default properties when the object is NULL', () => {
+      generateErrorResponseObjectStub.restore();
+      const errorResponseObject = ApiHelper.generateErrorResponseObject(null);
+
+      return errorResponseObject.should.deep.equal({
+        responseType: 'malformed',
+        debug: 'malformed request'
+      });
+    });
+  });
+
+  describe('handleApiErrors(errorObject, serviceType, item, callback) function', () => {
+    
+  });
+
   describe('handleCancelItemPostRequests(items, type, apiUrl) function', () => {
     it('should reject the Promise with an error if the items array parameter is NULL', () => {
       const result = ApiHelper.handleCancelItemPostRequests(null, 'checkin-service', 'http://fakeurl.org');

@@ -50,59 +50,59 @@ const ApiHelper = {
       owningInstitutionId
     };
   },
-  generateErrorResponseObject(responseObject) {
+  generateErrorResponseObject(obj) {
+    const responseObject = obj || {};
     const errorObject = {};
 
-    if (responseObject) {
-      if (responseObject.response) {
-        errorObject.responseType = 'response';
-        // Get relevant configuration data
-        if (responseObject.response.config) {
-          const apiConfigResponse = responseObject.response.config;
-          if (apiConfigResponse.method) {
-            errorObject.method = apiConfigResponse.method;
-          }
+    if (responseObject.response) {
+      errorObject.responseType = 'response';
+      // Get relevant configuration data
+      if (responseObject.response.config) {
+        const apiConfigResponse = responseObject.response.config;
 
-          if (apiConfigResponse.url) {
-            errorObject.url = apiConfigResponse.url;
-          }
-
-          if (apiConfigResponse.data) {
-            errorObject.payload = apiConfigResponse.data;
-          }
-        }
-        // Get status code
-        if (responseObject.response.status) {
-          errorObject.statusCode = responseObject.response.status;
-        }
-        // Get status text
-        if (responseObject.response.statusText) {
-          errorObject.statusText = responseObject.response.statusText;
+        if (apiConfigResponse.method) {
+          errorObject.method = apiConfigResponse.method;
         }
 
-        // Get API data specific info
-        if (responseObject.response.data) {
-          const apiDataResponse = responseObject.response.data;
-
-          if (apiDataResponse.type) {
-            errorObject.errorType = apiDataResponse.type;
-          }
-
-          if (apiDataResponse.message) {
-            errorObject.errorMessage = apiDataResponse.message;
-          }
-
-          if (apiDataResponse.debugInfo) {
-            errorObject.debug = apiDataResponse.debugInfo;
-          }
+        if (apiConfigResponse.url) {
+          errorObject.url = apiConfigResponse.url;
         }
-      } else if (responseObject.request) {
-        errorObject.responseType = 'request';
-        errorObject.debug = responseObject.request._headers;
-      } else {
-        errorObject.responseType = 'malformed';
-        errorObject.debug = responseObject.message;
+
+        if (apiConfigResponse.data) {
+          errorObject.payload = apiConfigResponse.data;
+        }
       }
+      // Get status code
+      if (responseObject.response.status) {
+        errorObject.statusCode = responseObject.response.status;
+      }
+      // Get status text
+      if (responseObject.response.statusText) {
+        errorObject.statusText = responseObject.response.statusText;
+      }
+
+      // Get API data specific info
+      if (responseObject.response.data) {
+        const apiDataResponse = responseObject.response.data;
+
+        if (apiDataResponse.type) {
+          errorObject.errorType = apiDataResponse.type;
+        }
+
+        if (apiDataResponse.message) {
+          errorObject.errorMessage = apiDataResponse.message;
+        }
+
+        if (apiDataResponse.debugInfo) {
+          errorObject.debug = apiDataResponse.debugInfo;
+        }
+      }
+    } else if (responseObject.request) {
+      errorObject.responseType = 'request';
+      errorObject.debug = responseObject.request._headers;
+    } else {
+      errorObject.responseType = 'malformed';
+      errorObject.debug = responseObject.message || 'malformed request';
     }
 
     return errorObject;
@@ -127,8 +127,6 @@ const ApiHelper = {
       const statusText = errorObject.statusText.toLowerCase() || '';
       errorMessage += `; service responded with a status code: (${statusCode}) and status text: ${statusText}`;
 
-      console.log(errorMessage);
-
       if (statusCode === 401) {
         return callback(
           new CancelRequestConsumerError(
@@ -142,20 +140,7 @@ const ApiHelper = {
         );
       }
 
-      if (statusCode === 403) {
-        return callback(
-          new CancelRequestConsumerError(
-            errorMessage,
-            {
-              type: 'access-forbidden-for-scopes',
-              statusCode: statusCode,
-              debugInfo: errorObject
-            }
-          )
-        );
-      }
-
-      if (statusCode >= 500) {
+      if (statusCode !== 404 || statusCode >= 500) {
         return callback(
           new CancelRequestConsumerError(
             errorMessage,
@@ -168,6 +153,7 @@ const ApiHelper = {
         );
       }
 
+      // Only skip item when status is 404
       return callback(null, item);
     }
 
