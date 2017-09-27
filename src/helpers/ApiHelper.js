@@ -118,14 +118,27 @@ const ApiHelper = {
 
     return Object.assign({}, dataResponse, { statusCode: statusCode }, { debugInfo: debugInfo });
   },
-  handleApiErrors(errorObject, serviceType, item, callback) {
-    const errorType = `${serviceType.toLowerCase()}-error`;
-    let errorMessage = `An error was received from the ${serviceType} for Cancel Request Record (${item.id})`;
+  handleApiErrors(errorObj, serviceType, item, callback) {
+    const errorObject = errorObj || {};
+    let errorType = 'service-error';
+    let errorMessage = 'An error was received';
+
+    if (typeof serviceType === 'string' && serviceType !== '') {
+      errorMessage += ` from the ${serviceType}`;
+      errorType = `${serviceType}-error`;
+    }
+
+    if (item && item.id) {
+      errorMessage += ` for Cancel Request Record (${item.id})`;
+    }
+
 
     if (errorObject.responseType === 'response') {
       const statusCode = errorObject.statusCode;
       const statusText = errorObject.statusText.toLowerCase() || '';
-      errorMessage += `; service responded with a status code: (${statusCode}) and status text: ${statusText}`;
+      errorMessage += `; the service responded with a status code: (${statusCode}) and status text: ${statusText}`;
+
+      console.log(errorMessage);
 
       if (statusCode === 401) {
         return callback(
@@ -156,14 +169,6 @@ const ApiHelper = {
       // Only skip item when status is 404
       return callback(null, item);
     }
-
-    // if (errorObject.responseType === 'request') {
-    //   // TODO: Add Logging
-    //
-    //   return callback(new CancelRequestConsumerError(
-    //     errorMessage, { type: errorType, debugInfo: errorObject }
-    //   ));
-    // }
 
     // TODO: Add Logging
     return callback(new CancelRequestConsumerError(
