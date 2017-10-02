@@ -1,4 +1,4 @@
-/* eslint-disable semi */
+/* eslint-disable semi, no-unused-expressions */
 import axios from 'axios';
 import sinon from 'sinon';
 import sinonChai from 'sinon-chai';
@@ -16,12 +16,12 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
   let mock;
   let generateErrorResponseObjectStub;
 
-  beforeEach(function() {
+  beforeEach(() => {
     generateErrorResponseObjectStub = sinon.stub(ApiHelper, 'generateErrorResponseObject');
     mock = new MockAdapter(axios);
   });
 
-  afterEach(function() {
+  afterEach(() => {
     generateErrorResponseObjectStub.restore();
     mock.reset();
   });
@@ -133,8 +133,7 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
           statusText: 'Not Found',
           data: {
             type: 'ncip-error',
-            message: 'Item not found',
-            debugInfo: 'debug'
+            message: 'Item not found'
           }
         }
       });
@@ -147,8 +146,7 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
         statusCode: 404,
         statusText: 'Not Found',
         errorType: 'ncip-error',
-        errorMessage: 'Item not found',
-        debug: 'debug'
+        errorMessage: 'Item not found'
       });
     });
 
@@ -165,7 +163,9 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
       return errorResponseObject.should.deep.equal({
         responseType: 'request',
         debug: {
-          someKey: 'someValue'
+          _headers: {
+            someKey: 'someValue'
+          }
         }
       });
     });
@@ -352,7 +352,6 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
       return result.should.be.rejectedWith(CancelRequestConsumerError, /the apiUrl string parameter is not defined or empty/);
     });
 
-
     it('should reject the Promise with an error if the token parameter is NULL', () => {
       const result = ApiHelper.handleCancelItemPostRequests([{}], 'checkin-service', 'http://apiurl.org', null);
 
@@ -439,7 +438,7 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
     ];
 
     it('should take in N items and apply the processingFn to fire a callback with an error and rejects', () => {
-      const dummyRejectFn = function(item, callback) {
+      const dummyRejectFn = function (item, callback) {
         return callback(new Error('error'));
       };
 
@@ -449,7 +448,7 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
     });
 
     it('should take in N items and apply the processingFn to fire a callback with the items and resolve', () => {
-      const dummyResolveFn = function(item, callback) {
+      const dummyResolveFn = function (item, callback) {
         return callback(null, item);
       };
 
@@ -579,14 +578,12 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
           null,
           {
             checkoutProccessed: true,
-            itemBarcode: "barcode",
-            patronBarcode: "test",
+            itemBarcode: 'barcode',
+            patronBarcode: 'test',
             success: true
           }
         );
       });
-
-      cbSpy.restore();
     });
 
     it('should exectue the callback function with the second parameter being the failure item response obtained by the CheckOut Service when response.data.data is not defined', () => {
@@ -611,13 +608,11 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
           null,
           {
             checkoutProccessed: false,
-            itemBarcode: "barcode",
-            patronBarcode: "test"
+            itemBarcode: 'barcode',
+            patronBarcode: 'test'
           }
         );
       });
-
-      cbSpy.restore();
     });
 
     it('should exectue the errorCallback handler function on a 404 failure response', () => {
@@ -642,15 +637,12 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
           {
             id: 123,
             checkoutProccessed: false,
-            itemBarcode: "barcode",
-            patronBarcode: "test"
+            itemBarcode: 'barcode',
+            patronBarcode: 'test'
           },
           cbSpy
         );
       });
-
-      errorCbSpy.restore();
-      cbSpy.restore();
     });
 
     it('should exectue the errorCallback handler function on a TIMEOUT failure response', () => {
@@ -675,15 +667,12 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
           {
             id: 123,
             checkoutProccessed: false,
-            itemBarcode: "barcode",
-            patronBarcode: "test"
+            itemBarcode: 'barcode',
+            patronBarcode: 'test'
           },
           cbSpy
         );
       });
-
-      errorCbSpy.restore();
-      cbSpy.restore();
     });
   });
 
@@ -740,14 +729,12 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
           {
             checkoutProccessed: true,
             checkinProccessed: true,
-            itemBarcode: "barcode",
-            patronBarcode: "test",
+            itemBarcode: 'barcode',
+            patronBarcode: 'test',
             success: true
           }
         );
       });
-
-      cbSpy.restore();
     });
 
     it('should exectue the callback function with the second parameter being the failure item response obtained by the CheckIn Service when response.data.data is not defined', () => {
@@ -762,7 +749,7 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
 
       const result = ApiHelper.postCheckInItem(
         'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
-        function(err, item, callback) {},
+        null,
         { id: 123, patronBarcode: 'test', itemBarcode: 'barcode', checkoutProccessed: true },
         cbSpy
       );
@@ -773,14 +760,12 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
           {
             checkoutProccessed: true,
             checkinProccessed: false,
-            itemBarcode: "barcode",
-            patronBarcode: "test",
+            itemBarcode: 'barcode',
+            patronBarcode: 'test',
             id: 123
           }
         );
       });
-
-      cbSpy.restore();
     });
 
     it('should exectue the errorCallback handler function on a 404 failure response', () => {
@@ -804,16 +789,13 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
           {
             checkoutProccessed: true,
             checkinProccessed: false,
-            itemBarcode: "barcode",
-            patronBarcode: "test",
+            itemBarcode: 'barcode',
+            patronBarcode: 'test',
             id: 123
           },
           cbSpy
         );
       });
-
-      errorCbSpy.restore();
-      cbSpy.restore();
     });
   });
 });

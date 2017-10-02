@@ -1,3 +1,4 @@
+/* eslint-disable semi */
 import chai from 'chai';
 import CancelRequestConsumerError from '../../src/helpers/ErrorHelper';
 const expect = chai.expect;

@@ -93,13 +93,13 @@ const ApiHelper = {
           errorObject.errorMessage = apiDataResponse.message;
         }
 
-        if (apiDataResponse.debugInfo) {
-          errorObject.debug = apiDataResponse.debugInfo;
-        }
+        // if (apiDataResponse.debugInfo) {
+        //   errorObject.debug = apiDataResponse.debugInfo;
+        // }
       }
     } else if (responseObject.request) {
       errorObject.responseType = 'request';
-      errorObject.debug = responseObject.request._headers;
+      errorObject.debug = responseObject.request;
     } else {
       errorObject.responseType = 'malformed';
       errorObject.debug = responseObject.message || 'malformed request';
@@ -257,6 +257,7 @@ const ApiHelper = {
         })
         .catch(error => {
           const errorResponse = this.generateErrorResponseObject(error);
+          console.log('checkout error: ', errorResponse);
           // Assign the error clean error object to the item
           item.error = errorResponse;
           // Handle retries or fatal errors by error status code
@@ -295,6 +296,7 @@ const ApiHelper = {
       })
       .catch(error => {
         const errorResponse = this.generateErrorResponseObject(error);
+        console.log('checkin error: ', errorResponse);
         // Assign the error clean error object to the item
         item.error = errorResponse;
         // Handle retries or fatal errors by error status code

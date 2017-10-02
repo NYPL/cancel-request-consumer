@@ -5,7 +5,7 @@
         "kinesisSchemaVersion": "1.0",
         "partitionKey": "s1",
         "sequenceNumber": "00000000000000000000000000000000000000000000000000000001",
-        "data": "UAJIMDdhMDljNjItM2U0MS00YzU1LWEwOGYtYTg1YzhkNTQxOTQxAgY2NjECHDIzMzMzMDgwODk0ODI1AhwzMzQzMzAwNTkzNjQzNAIITllQTAAAAjIyMDE3LTA5LTIwVDE2OjA3OjQzLTA0OjAwAA==",
+        "data": "1goCIjgwMTI1OWNlNjViNGNkNzg1AgY2ODMCHDIzMzMzMDgwODk0ODI1AhwzMzQzMzAwMDgyOTE0NwIITllQTAAAAjIyMDE3LTA5LTI5VDExOjI0OjM3LTA0OjAwAA==",
         "approximateArrivalTimestamp": 1428537600
       },
       "eventSource": "aws:kinesis",
@@ -21,7 +21,7 @@
         "kinesisSchemaVersion": "1.0",
         "partitionKey": "s1",
         "sequenceNumber": "00000000000000000000000000000000000000000000000000000001",
-        "data": "UgJIOTAxMmRhYTMtZmVhMi00NzMxLTk3MzEtYTllOWUxZWQ5OWNkAgY2NjgCHDIzMzMzMDgwODk0ODI1AhwzMzQzMzAwMDk0ODE1MgIITllQTAAAAjIyMDE3LTA5LTIwVDE2OjA4OjE2LTA0OjAwAA==",
+        "data": "2AoCIjgwMTM1OWNlNjVlM2IzOTU1AgY2ODMCHDIzMzMzMDgwODk0ODI1AhwzMzQzMzAwMDgyOTI5NQIITllQTAAAAjIyMDE3LTA5LTI5VDExOjI1OjI0LTA0OjAwAA==",
         "approximateArrivalTimestamp": 1428537600
       },
       "eventSource": "aws:kinesis",
@@ -37,7 +37,7 @@
         "kinesisSchemaVersion": "1.0",
         "partitionKey": "s1",
         "sequenceNumber": "00000000000000000000000000000000000000000000000000000001",
-        "data": "VAJINzdjN2Y5N2EtOWFjNC00YjI3LWE3N2YtMjQ4MTFiMzJhYTdjAgY2ODcCHDIzMzMzMDgwODk0ODI1AhwzMzQzMzAwMDgyOTI5NQIITllQTAAAAjIyMDE3LTA5LTIwVDE2OjA4OjUwLTA0OjAwAA==",
+        "data": "3AoCIjgwMTU1OWNlNjYxNDY5ZGFjAgY2ODMCHDIzMzMzMDgwODk0ODI1AhwzMzQzMzAwMDgyOTI4NwIITllQTAAAAjIyMDE3LTA5LTI5VDExOjI2OjEyLTA0OjAwAA==",
         "approximateArrivalTimestamp": 1428537600
       },
       "eventSource": "aws:kinesis",
@@ -53,7 +53,7 @@
         "kinesisSchemaVersion": "1.0",
         "partitionKey": "s1",
         "sequenceNumber": "00000000000000000000000000000000000000000000000000000001",
-        "data": "VgJIYWY0MzU5NzMtNzk5NC00NjZhLTgyNjAtZmJiZmY5NDBiYzc5AgY2OTgCHDIzMzMzMDczMjU5Nzk2AhwzMjEwMTA1OTgxNjQzNwIGUFVMAAACMjIwMTctMDktMjBUMTY6MDk6MjQtMDQ6MDAA",
+        "data": "igsCIjgwMTk1OWNlNjdjNjI1ZmUzAgY3MDkCHDIzMzMzMDgwODk0ODI1AhwzMjEwMTA5NjExNTIxNQIGUFVMAAACMjIwMTctMDktMjlUMTE6MzM6MjYtMDQ6MDAA",
         "approximateArrivalTimestamp": 1428537600
       },
       "eventSource": "aws:kinesis",
@@ -69,7 +69,7 @@
         "kinesisSchemaVersion": "1.0",
         "partitionKey": "s1",
         "sequenceNumber": "00000000000000000000000000000000000000000000000000000001",
-        "data": "WAJIYjExYTAxOGItNjY3NS00NDk2LTk4MGEtMmUxZjVkYTEzNDZkAgY3MDYCHDIzMzMzMDgwODk0ODI1AhRBUjAwMzAyNzA4AgZDVUwAAAIyMjAxNy0wOS0yMFQxNjowOTo1NC0wNDowMAA=",
+        "data": "hgsCIjgwMTc1OWNlNjc5YThjODA0AgY3MDcCHDIzMzMzMDgwODk0ODI1AhRDVTIzNzM5NjA2AgZDVUwAAAIyMjAxNy0wOS0yOVQxMTozMjo0Mi0wNDowMAA=",
         "approximateArrivalTimestamp": 1428537600
       },
       "eventSource": "aws:kinesis",

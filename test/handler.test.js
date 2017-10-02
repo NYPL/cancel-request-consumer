@@ -359,6 +359,90 @@ describe('CancelRequestConsumer Lambda: Handle Kinesis Stream Input', () => {
       expect(callbackSpy).to.be.calledWith('missing/undefined nyplCheckoutRequestApiUrl configuration parameter');
     });
 
+    it('should catch a CancelRequestConsumerError and return the callback with the error message if the cancelRequestResultSchemaName configuration parameter is missing', () => {
+      kinesisHandlerFunc(
+        event.Records,
+        {
+          oAuthProviderUrl: 'http://oauthurl.org',
+          oAuthClientId: 'client_id',
+          oAuthClientSecret: 'secret',
+          oAuthProviderScope: 'scope',
+          nyplDataApiBaseUrl: 'http://nyplbaseurl.org',
+          recapCancelRequestSchema: 'cancelRequestSchema',
+          nyplCheckinRequestApiUrl: 'http://checkinurl.org',
+          nyplCheckoutRequestApiUrl: 'http://checkouturl.org'
+        },
+        null,
+        callbackSpy
+      );
+
+      expect(callbackSpy).to.be.calledWith('missing/undefined cancelRequestResultSchemaName configuration parameter');
+    });
+
+    it('should catch a CancelRequestConsumerError and return the callback with the error message if the cancelRequestResultSchemaName configuration parameter is an EMPTY string', () => {
+      kinesisHandlerFunc(
+        event.Records,
+        {
+          oAuthProviderUrl: 'http://oauthurl.org',
+          oAuthClientId: 'client_id',
+          oAuthClientSecret: 'secret',
+          oAuthProviderScope: 'scope',
+          nyplDataApiBaseUrl: 'http://nyplbaseurl.org',
+          recapCancelRequestSchema: 'cancelRequestSchema',
+          nyplCheckinRequestApiUrl: 'http://checkinurl.org',
+          nyplCheckoutRequestApiUrl: 'http://checkouturl.org',
+          cancelRequestResultSchemaName: ''
+        },
+        null,
+        callbackSpy
+      );
+
+      expect(callbackSpy).to.be.calledWith('missing/undefined cancelRequestResultSchemaName configuration parameter');
+    });
+
+    it('should catch a CancelRequestConsumerError and return the callback with the error message if the cancelRequestResultStreamName configuration parameter is missing', () => {
+      kinesisHandlerFunc(
+        event.Records,
+        {
+          oAuthProviderUrl: 'http://oauthurl.org',
+          oAuthClientId: 'client_id',
+          oAuthClientSecret: 'secret',
+          oAuthProviderScope: 'scope',
+          nyplDataApiBaseUrl: 'http://nyplbaseurl.org',
+          recapCancelRequestSchema: 'cancelRequestSchema',
+          nyplCheckinRequestApiUrl: 'http://checkinurl.org',
+          nyplCheckoutRequestApiUrl: 'http://checkouturl.org',
+          cancelRequestResultSchemaName: 'schemaName'
+        },
+        null,
+        callbackSpy
+      );
+
+      expect(callbackSpy).to.be.calledWith('missing/undefined cancelRequestResultStreamName configuration parameter');
+    });
+
+    it('should catch a CancelRequestConsumerError and return the callback with the error message if the cancelRequestResultStreamName configuration parameter is an EMPTY string', () => {
+      kinesisHandlerFunc(
+        event.Records,
+        {
+          oAuthProviderUrl: 'http://oauthurl.org',
+          oAuthClientId: 'client_id',
+          oAuthClientSecret: 'secret',
+          oAuthProviderScope: 'scope',
+          nyplDataApiBaseUrl: 'http://nyplbaseurl.org',
+          recapCancelRequestSchema: 'cancelRequestSchema',
+          nyplCheckinRequestApiUrl: 'http://checkinurl.org',
+          nyplCheckoutRequestApiUrl: 'http://checkouturl.org',
+          cancelRequestResultSchemaName: 'schemaName',
+          cancelRequestResultStreamName: ' '
+        },
+        null,
+        callbackSpy
+      );
+
+      expect(callbackSpy).to.be.calledWith('missing/undefined cancelRequestResultStreamName configuration parameter');
+    });
+
     it('should call the handleKinesisAsyncProcessing function after all required parameters have been validated', () => {
       let handleKinesisAsyncProcessingStub = sinon.stub(CancelRequestConsumer, 'handleKinesisAsyncProcessing');
 
@@ -373,7 +457,9 @@ describe('CancelRequestConsumer Lambda: Handle Kinesis Stream Input', () => {
           nyplDataApiBaseUrl: 'http://nyplbaseurl.org',
           recapCancelRequestSchema: 'recapSchemaName',
           nyplCheckinRequestApiUrl: 'http://checkinurl.org',
-          nyplCheckoutRequestApiUrl: 'http://checkouturl.org'
+          nyplCheckoutRequestApiUrl: 'http://checkouturl.org',
+          cancelRequestResultSchemaName: 'resultSchemaName',
+          cancelRequestResultStreamName: 'resultStreamName'
         }
       );
 
