@@ -1,3 +1,4 @@
+/* eslint-disable semi */
 import chai from 'chai';
 import Cache from '../../src/cache/CacheFactory';
 chai.should();

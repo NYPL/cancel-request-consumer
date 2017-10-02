@@ -4,6 +4,7 @@ import { handleAuthentication, fetchAccessToken } from './src/helpers/OAuthHelpe
 import ApiHelper from './src/helpers/ApiHelper';
 import Cache from './src/cache/CacheFactory';
 import CancelRequestConsumerError from './src/helpers/ErrorHelper';
+import { postItemsToStream } from './src/helpers/StreamHelper';
 
 exports.handleKinesisAsyncProcessing = async function(records, opts, context, callback) {
   try {
@@ -16,7 +17,9 @@ exports.handleKinesisAsyncProcessing = async function(records, opts, context, ca
       nyplDataApiBaseUrl,
       recapCancelRequestSchema,
       nyplCheckinRequestApiUrl,
-      nyplCheckoutRequestApiUrl
+      nyplCheckoutRequestApiUrl,
+      cancelRequestResultSchemaName,
+      cancelRequestResultStreamName
     } = opts;
 
     const streamsClient = new NyplStreamsClient({ nyplDataApiClientBase: nyplDataApiBaseUrl });
@@ -37,7 +40,9 @@ exports.handleKinesisAsyncProcessing = async function(records, opts, context, ca
     let processedCheckoutItems = await ApiHelper.handleCancelItemPostRequests(decodedRecords, 'checkout-service', nyplCheckoutRequestApiUrl, Cache.getToken());
     // console.log(processedCheckoutItems);
     let processedCheckinItems = await ApiHelper.handleCancelItemPostRequests(processedCheckoutItems, 'checkin-service', nyplCheckinRequestApiUrl, Cache.getToken());
-    /// console.log(processedCheckinItems);
+    let resultOfItemsPostedToStream = await postItemsToStream(processedCheckinItems, cancelRequestResultStreamName, cancelRequestResultSchemaName, streamsClient);
+
+    console.log(resultOfItemsPostedToStream);
 
   } catch (e) {
     console.log('handleKinesisAsyncLogic', e);
@@ -118,6 +123,20 @@ exports.kinesisHandler = (records, opts, context, callback) => {
       );
     }
 
+    if (!opts.cancelRequestResultSchemaName || typeof opts.cancelRequestResultSchemaName !== 'string' || opts.cancelRequestResultSchemaName.trim() === '') {
+      throw new CancelRequestConsumerError(
+        'missing/undefined cancelRequestResultSchemaName configuration parameter',
+        { type: 'function-parameter-error' }
+      );
+    }
+
+    if (!opts.cancelRequestResultStreamName || typeof opts.cancelRequestResultStreamName !== 'string' || opts.cancelRequestResultStreamName.trim() === '') {
+      throw new CancelRequestConsumerError(
+        'missing/undefined cancelRequestResultStreamName configuration parameter',
+        { type: 'function-parameter-error' }
+      );
+    }
+
     return exports.handleKinesisAsyncProcessing(records, opts, context, callback);
   } catch (e) {
     // console.log('kinesisHandler Error Caught', e);
@@ -145,7 +164,9 @@ exports.handler = (event, context, callback) => {
             nyplDataApiBaseUrl: process.env.NYPL_DATA_API_BASE_URL,
             recapCancelRequestSchema: process.env.RECAP_CANCEL_REQUEST_SCHEMA_NAME,
             nyplCheckinRequestApiUrl: process.env.NYPL_CHECKIN_REQUEST_API_URL,
-            nyplCheckoutRequestApiUrl: process.env.NYPL_CHECKOUT_REQUEST_API_URL
+            nyplCheckoutRequestApiUrl: process.env.NYPL_CHECKOUT_REQUEST_API_URL,
+            cancelRequestResultSchemaName: process.env.CANCEL_REQUEST_RESULT_SCHEMA_NAME,
+            cancelRequestResultStreamName: process.env.CANCEL_REQUEST_RESULT_STREAM_NAME
           },
           context,
           callback
