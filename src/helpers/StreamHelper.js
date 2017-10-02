@@ -36,6 +36,7 @@ const postItemsToStream = function (items, streamName, schemaName, streamsClient
 
         return streamsClient.write(streamName, itemToPost, { avroSchemaName: schemaName })
         .then(response => {
+          console.log(`successfully posted Cancel Request Record (${item.id}) to CancelRequestResultStream`);
           item.proccessedToResultStream = true;
 
           return callback(null, item);

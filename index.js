@@ -37,17 +37,19 @@ exports.handleKinesisAsyncProcessing = async function(records, opts, context, ca
     }
 
     // console.log(decodedRecords);
-    let processedCheckedOutItems = await ApiHelper.handleCancelItemPostRequests(decodedRecords, 'checkout-service', nyplCheckoutRequestApiUrl, Cache.getToken());
+    const processedCheckedOutItems = await ApiHelper.handleCancelItemPostRequests(decodedRecords, 'checkout-service', nyplCheckoutRequestApiUrl, Cache.getToken());
     // console.log(processedCheckedOutItems);
-    let processedCheckedInItems = await ApiHelper.handleCancelItemPostRequests(processedCheckedOutItems, 'checkin-service', nyplCheckinRequestApiUrl, Cache.getToken());
+    const processedCheckedInItems = await ApiHelper.handleCancelItemPostRequests(processedCheckedOutItems, 'checkin-service', nyplCheckinRequestApiUrl, Cache.getToken());
     // console.log(processedCheckedInItems);
-    let proccessedItemsToStream = await postItemsToStream(processedCheckedInItems, cancelRequestResultStreamName, cancelRequestResultSchemaName, streamsClient);
+    const proccessedItemsToStream = await postItemsToStream(processedCheckedInItems, cancelRequestResultStreamName, cancelRequestResultSchemaName, streamsClient);
 
-    console.log(proccessedItemsToStream);
+    // console.log(proccessedItemsToStream);
 
-    if (proccessedItemsToStream) {
-      return callback(null, 'The CancelRequestConsumer Lambda has successfully processed all Cancel Request Items; no fatal errors have occured');
+    if (!proccessedItemsToStream || !Array.isArray(proccessedItemsToStream)) {
+      return callback('The CancelRequestConsumer Lambda failed to proccess all Cancel Request Items');
     }
+
+    return callback(null, 'The CancelRequestConsumer Lambda has successfully processed all Cancel Request Items; no fatal errors have occured');
   } catch (e) {
     // console.log('handleKinesisAsyncLogic', e);
 
