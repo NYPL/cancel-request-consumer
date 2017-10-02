@@ -4,6 +4,7 @@ import MockAdapter from 'axios-mock-adapter';
 import chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import { getOauthConfig, fetchAccessToken, handleAuthentication } from '../../src/helpers/OAuthHelper';
+import CancelRequestConsumerError from '../../src/helpers/ErrorHelper';
 const expect = chai.expect;
 chai.should();
 chai.use(chaiAsPromised);
@@ -88,17 +89,17 @@ describe('CancelRequestConsumer Lambda: OAuthHelper Factory', () => {
   describe('fetchAccessToken(oauthUrl, clientId, clientSecret, scope, grantType) function', () => {
     it('should reject the Promise if the oauthUrl string parameter is NULL', () => {
       const result = fetchAccessToken(null, 'clientId', 'clientSecret', 'scope', 'customGrantType');
-      return result.should.be.rejectedWith(Error, /the oauthUrl function parameter is not defined or invalid; must be of type string and not empty/);
+      return result.should.be.rejectedWith(CancelRequestConsumerError, 'the oauthUrl function parameter is not defined or invalid; must be of type string and not empty');
     });
 
     it('should reject the Promise if the oauthUrl string parameter is NOT a string', () => {
       const result = fetchAccessToken({}, 'clientId', 'clientSecret', 'scope', 'customGrantType');
-      return result.should.be.rejectedWith(Error, /the oauthUrl function parameter is not defined or invalid; must be of type string and not empty/);
+      return result.should.be.rejectedWith(CancelRequestConsumerError, 'the oauthUrl function parameter is not defined or invalid; must be of type string and not empty');
     });
 
     it('should reject the Promise if the oauthUrl string parameter is EMPTY', () => {
       const result = fetchAccessToken(' ', 'clientId', 'clientSecret', 'scope', 'customGrantType');
-      return result.should.be.rejectedWith(Error, /the oauthUrl function parameter is not defined or invalid; must be of type string and not empty/);
+      return result.should.be.rejectedWith(CancelRequestConsumerError, 'the oauthUrl function parameter is not defined or invalid; must be of type string and not empty');
     });
 
     it('should resolve the Promise with an access_token when the OAuth URL is valid', () => {
@@ -120,21 +121,22 @@ describe('CancelRequestConsumer Lambda: OAuthHelper Factory', () => {
       );
 
       const response = fetchAccessToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope');
-      return response.should.be.rejectedWith(Error, /the oAuthResponse object contained an undefined access_token property/);
+
+      return response.should.be.rejectedWith(CancelRequestConsumerError, 'the oAuthResponse object contained an undefined access_token property');
     });
 
     it('should reject the Promise with an error response when the OAuth server returns a 404', () => {
       mock.onPost().reply(404);
 
       const response = fetchAccessToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope');
-      return response.should.be.rejected.and.should.eventually.have.property('status', 404);
+      return response.should.be.rejected.and.should.eventually.have.property('statusCode', 404);
     });
 
     it('should reject the Promise with an error response when the OAuth server returns a 500 (Internal Server Error)', () => {
       mock.onPost().reply(500);
 
       const response = fetchAccessToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope');
-      return response.should.be.rejected.and.should.eventually.have.property('status', 500);
+      return response.should.be.rejected.and.should.eventually.have.property('statusCode', 500);
     });
   });
 
@@ -168,7 +170,7 @@ describe('CancelRequestConsumer Lambda: OAuthHelper Factory', () => {
 
       const result = handleAuthentication(null, fetchAccessToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope'));
 
-      return result.should.be.rejected.and.should.eventually.have.property('status', 500);
+      return result.should.be.rejected.and.should.eventually.have.property('statusCode', 500);
     });
 
     it('should call the fetchTokenCallbackFn when the cachedToken is undefined and if an API (4xx) error occurs should reject the Promise with the error', () => {
@@ -176,7 +178,7 @@ describe('CancelRequestConsumer Lambda: OAuthHelper Factory', () => {
 
       const result = handleAuthentication(null, fetchAccessToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope'));
 
-      return result.should.be.rejected.and.should.eventually.have.property('status', 401);
+      return result.should.be.rejected.and.should.eventually.have.property('statusCode', 401);
     });
   });
 });

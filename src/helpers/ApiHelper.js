@@ -153,7 +153,7 @@ const ApiHelper = {
         );
       }
 
-      if (statusCode !== 404 || statusCode >= 500) {
+      if (statusCode !== 404) {
         return callback(
           new CancelRequestConsumerError(
             errorMessage,
@@ -257,7 +257,7 @@ const ApiHelper = {
         })
         .catch(error => {
           const errorResponse = this.generateErrorResponseObject(error);
-          console.log('checkout error: ', errorResponse);
+          // console.log('checkout error: ', errorResponse);
           // Assign the error clean error object to the item
           item.error = errorResponse;
           // Handle retries or fatal errors by error status code
@@ -296,7 +296,7 @@ const ApiHelper = {
       })
       .catch(error => {
         const errorResponse = this.generateErrorResponseObject(error);
-        console.log('checkin error: ', errorResponse);
+        // console.log('checkin error: ', errorResponse);
         // Assign the error clean error object to the item
         item.error = errorResponse;
         // Handle retries or fatal errors by error status code

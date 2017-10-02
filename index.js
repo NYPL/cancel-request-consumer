@@ -37,24 +37,70 @@ exports.handleKinesisAsyncProcessing = async function(records, opts, context, ca
     }
 
     // console.log(decodedRecords);
-    let processedCheckoutItems = await ApiHelper.handleCancelItemPostRequests(decodedRecords, 'checkout-service', nyplCheckoutRequestApiUrl, Cache.getToken());
-    // console.log(processedCheckoutItems);
-    let processedCheckinItems = await ApiHelper.handleCancelItemPostRequests(processedCheckoutItems, 'checkin-service', nyplCheckinRequestApiUrl, Cache.getToken());
-    let resultOfItemsPostedToStream = await postItemsToStream(processedCheckinItems, cancelRequestResultStreamName, cancelRequestResultSchemaName, streamsClient);
+    let processedCheckedOutItems = await ApiHelper.handleCancelItemPostRequests(decodedRecords, 'checkout-service', nyplCheckoutRequestApiUrl, Cache.getToken());
+    // console.log(processedCheckedOutItems);
+    let processedCheckedInItems = await ApiHelper.handleCancelItemPostRequests(processedCheckedOutItems, 'checkin-service', nyplCheckinRequestApiUrl, Cache.getToken());
+    // console.log(processedCheckedInItems);
+    let proccessedItemsToStream = await postItemsToStream(processedCheckedInItems, cancelRequestResultStreamName, cancelRequestResultSchemaName, streamsClient);
 
-    console.log(resultOfItemsPostedToStream);
+    console.log(proccessedItemsToStream);
 
+    if (proccessedItemsToStream) {
+      return callback(null, 'The CancelRequestConsumer Lambda has successfully processed all Cancel Request Items; no fatal errors have occured');
+    }
   } catch (e) {
-    console.log('handleKinesisAsyncLogic', e);
+    // console.log('handleKinesisAsyncLogic', e);
 
     if (e.name === 'AvroValidationError') {
-      console.log(e);
       console.log('a fatal/non-recoverable AvroValidationError occured which prohibits decoding the kinesis stream; the CancelRequestConsumer Lambda will NOT restart');
       return false;
     }
 
-    // console.log('handleKinesisAsyncLogic', e);
-    // return callback(e);
+    if (e.name === 'CancelRequestConsumerError') {
+      // Recoverable Error: The CancelRequestResultStream returned an error, will attempt to restart handler.
+      if (e.type === 'cancel-request-result-stream-error') {
+        console.log('restarting the lambda; received an error from the CancelRequestResultStream; unable to send POST requests to the HoldRequestResult stream');
+
+        return callback(e.message);
+      }
+
+      // Recoverable Error: Reset the access_token
+      if (e.statusCode === 401) {
+        console.log('restarting the lambda to fetch a new access_token; the OAuth access_token has expired');
+
+        return callback(e.message);
+      }
+
+      // Recoverable Error: OAuth Service may be temporarily down; retriable error.
+      if (e.type === 'oauth-service-error' && e.statusCode >= 500) {
+        console.log('restarting the lambda; a 5xx error was caught from the oauth-service');
+
+        return callback(e.message);
+      }
+
+      // Recoverable Error: Checkout Service may be temporarily down; retriable error.
+      if (e.type === 'checkout-service-error' && e.statusCode >= 500) {
+        console.log('restarting the lambda; a 5xx error was caught from the checkout-service');
+
+        return callback(e.message);
+      }
+
+      // Recoverable Error: Checkout Service may be temporarily down; retriable error.
+      if (e.type === 'checkin-service-error' && e.statusCode >= 500) {
+        console.log('restarting the lambda; a 5xx error was caught from the checkin-service');
+
+        return callback(e.message);
+      }
+
+      console.log(`a non-recoverable error occured; the Lambda will not restart; ${e.message}`);
+      return false;
+    }
+
+    if (typeof e === 'string' || e instanceof String) {
+      console.log(`a fatal error occured, the lambda will NOT restart; ${e}`);
+
+      return false;
+    }
   }
 };
 
