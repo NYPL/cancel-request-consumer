@@ -29,6 +29,8 @@ exports.handleKinesisAsyncProcessing = async function(records, opts, context, ca
       streamsClient.decodeData(recapCancelRequestSchema, records.map(i => i.kinesis.data))
     ]);
 
+    const unprocessedRecords = await Cache.filterProcessedRecords(decodedRecords);
+
     if (tokenResponse.tokenType === 'new-token') {
       console.log('setting a new access token from OAuth Service');
       Cache.setToken(tokenResponse.token);
@@ -37,7 +39,7 @@ exports.handleKinesisAsyncProcessing = async function(records, opts, context, ca
     }
 
     // console.log(decodedRecords);
-    const processedCheckedOutItems = await ApiHelper.handleCancelItemPostRequests(decodedRecords, 'checkout-service', nyplCheckoutRequestApiUrl, Cache.getToken());
+    const processedCheckedOutItems = await ApiHelper.handleCancelItemPostRequests(unprocessedRecords, 'checkout-service', nyplCheckoutRequestApiUrl, Cache.getToken());
     // console.log(processedCheckedOutItems);
     const processedCheckedInItems = await ApiHelper.handleCancelItemPostRequests(processedCheckedOutItems, 'checkin-service', nyplCheckinRequestApiUrl, Cache.getToken());
     // console.log(processedCheckedInItems);
@@ -51,14 +53,16 @@ exports.handleKinesisAsyncProcessing = async function(records, opts, context, ca
 
     return callback(null, 'The CancelRequestConsumer Lambda has successfully processed all Cancel Request Items; no fatal errors have occured');
   } catch (e) {
-    // console.log('handleKinesisAsyncLogic', e);
-
     if (e.name === 'AvroValidationError') {
       console.log('a fatal/non-recoverable AvroValidationError occured which prohibits decoding the kinesis stream; the CancelRequestConsumer Lambda will NOT restart');
       return false;
     }
 
     if (e.name === 'CancelRequestConsumerError') {
+      if (e.type === 'filtered-records-array-empty') {
+        return callback(null, 'The CancelRequestConsumer Lambda has no records to proccess; all processed records were filtered; no fatal errors have occured');
+      }
+
       // Recoverable Error: The CancelRequestResultStream returned an error, will attempt to restart handler.
       if (e.type === 'cancel-request-result-stream-error') {
         console.log('restarting the lambda; received an error from the CancelRequestResultStream; unable to send POST requests to the HoldRequestResult stream');
@@ -102,6 +106,8 @@ exports.handleKinesisAsyncProcessing = async function(records, opts, context, ca
       console.log(`a fatal error occured, the lambda will NOT restart; ${e}`);
 
       return false;
+    } else {
+      console.log(e);
     }
   }
 };
