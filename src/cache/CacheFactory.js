@@ -11,7 +11,7 @@ const Cache = {
   filterProcessedRecords(records) {
     let filteredRecords = [];
 
-    if (Array.isArray(records) && records.length > 0) {
+    if (records && Array.isArray(records) && records.length > 0) {
       console.log('filtering out decoded records with a processed flag equal to true; may result in an empty array');
 
       filteredRecords = records.filter(record => {
@@ -21,9 +21,10 @@ const Cache = {
 
         return !record.processed;
       });
+
+      console.log(`total records decoded: ${records.length}; total records to process: ${filteredRecords.length}`);
     }
 
-    console.log(`total records decoded: ${records.length}; total records to process: ${filteredRecords.length}`);
     // return filteredRecords;
     if (filteredRecords.length === 0) {
       return Promise.reject(
