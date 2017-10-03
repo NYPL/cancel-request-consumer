@@ -1,6 +1,8 @@
 /* eslint-disable semi, no-unused-expressions */
+import axios from 'axios';
+import MockAdapter from 'axios-mock-adapter';
 import chai from 'chai';
-// import chaiAsPromised from 'chai-as-promised';
+import chaiAsPromised from 'chai-as-promised';
 import sinon from 'sinon';
 import sinonChai from 'sinon-chai';
 import CancelRequestConsumer from '../index.js';
@@ -8,11 +10,11 @@ import CancelRequestConsumerError from '../src/helpers/ErrorHelper';
 import event from '../sample/sample_event.json';
 chai.should();
 chai.use(sinonChai);
-// chai.use(chaiAsPromised);
+chai.use(chaiAsPromised);
 const expect = chai.expect;
 
 const kinesisHandlerFunc = CancelRequestConsumer.kinesisHandler;
-// const handleKinesisAsyncProcessing = CancelRequestConsumer.handleKinesisAsyncProcessing;
+const handleKinesisAsyncProcessing = CancelRequestConsumer.handleKinesisAsyncProcessing;
 
 describe('CancelRequestConsumer Lambda: Handle Kinesis Stream Input', () => {
   describe('Main Handler: exports.handler()', () => {
@@ -470,6 +472,47 @@ describe('CancelRequestConsumer Lambda: Handle Kinesis Stream Input', () => {
   });
 
   describe('handleKinesisAsyncProcessing()', () => {
+    let mock;
 
+    beforeEach(() => {
+      mock = new MockAdapter(axios);
+    });
+
+    afterEach(() => {
+      mock.reset();
+    });
+
+    it('should be a function', () => {
+      expect(handleKinesisAsyncProcessing).to.be.a('function');
+    });
+
+    it('should throw an AvroValidationError and return false (no restart) when the Schema is incorrect', () => {
+      mock.onPost().reply(
+        200,
+        {
+          access_token: 'newAccessTokenResolved'
+        }
+      );
+
+      const result = handleKinesisAsyncProcessing(
+        event.Records,
+        {
+          oAuthProviderUrl: 'http://oauthurl.org',
+          oAuthClientId: 'cliendId',
+          oAuthClientSecret: 'clientSecret',
+          oAuthProviderScope: 'oAuthScope',
+          nyplDataApiBaseUrl: 'https://api.nypltech.org/api/v0.1/',
+          recapCancelRequestSchema: 'HoldRequest',
+          nyplCheckinRequestApiUrl: 'https://api.nypltech.org/api/v0.1/checkin-requests',
+          nyplCheckoutRequestApiUrl: 'https://api.nypltech.org/api/v0.1/checkout-requests',
+          cancelRequestResultSchemaName: 'resultSchemaName',
+          cancelRequestResultStreamName: 'resultStreamName'
+        },
+        null,
+        null
+      );
+
+      expect(result).to.eventually.equal(false);
+    });
   });
 });
