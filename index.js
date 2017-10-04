@@ -54,48 +54,48 @@ exports.handleKinesisAsyncProcessing = async function(records, opts, context, ca
     return callback(null, 'The CancelRequestConsumer Lambda has successfully processed all Cancel Request Items; no fatal errors have occured');
   } catch (e) {
     if (e.name === 'AvroValidationError') {
-      console.log('a fatal/non-recoverable AvroValidationError occured which prohibits decoding the kinesis stream; the CancelRequestConsumer Lambda will NOT restart');
+      console.log('A fatal/non-recoverable AvroValidationError occured which prohibits decoding the kinesis stream; the CancelRequestConsumer Lambda will NOT restart');
       return false;
     }
 
     if (e.name === 'CancelRequestConsumerError') {
       if (e.type === 'filtered-records-array-empty') {
-        return callback(null, 'The CancelRequestConsumer Lambda has no records to proccess; all processed records were filtered; no fatal errors have occured');
-      }
-
-      // Recoverable Error: The CancelRequestResultStream returned an error, will attempt to restart handler.
-      if (e.type === 'cancel-request-result-stream-error') {
-        console.log('restarting the lambda; received an error from the CancelRequestResultStream; unable to send POST requests to the HoldRequestResult stream');
-
-        return callback(e.message);
+        return callback(null, 'The CancelRequestConsumer Lambda has no records to proccess; all processed records were filtered out resulting in an empty array; no fatal errors have occured');
       }
 
       // Recoverable Error: Reset the access_token
       if (e.statusCode === 401) {
-        console.log('restarting the lambda to fetch a new access_token; the OAuth access_token has expired');
+        console.log('Restarting the CancelRequestConsumer Lambda to fetch a new access_token; the OAuth access_token has expired');
 
         return callback(e.message);
       }
 
       // Recoverable Error: OAuth Service may be temporarily down; retriable error.
       if (e.type === 'oauth-service-error' && e.statusCode >= 500) {
-        console.log('restarting the lambda; a 5xx error was caught from the oauth-service');
+        console.log('Restarting the CancelRequestConsumer Lambda; a 5xx error was caught from the oauth-service');
 
         return callback(e.message);
       }
 
       // Recoverable Error: Checkout Service may be temporarily down; retriable error.
       if (e.type === 'checkout-service-error' && e.statusCode >= 500) {
-        console.log('restarting the lambda; a 5xx error was caught from the checkout-service');
+        console.log('Restarting the CancelRequestConsumer Lambda; a 5xx error was caught from the checkout-service');
 
         return callback(e.message);
       }
 
       // Recoverable Error: Checkout Service may be temporarily down; retriable error.
       if (e.type === 'checkin-service-error' && e.statusCode >= 500) {
-        console.log('restarting the lambda; a 5xx error was caught from the checkin-service');
+        console.log('Restarting the CancelRequestConsumer Lambda; a 5xx error was caught from the checkin-service');
 
         return callback(e.message);
+      }
+
+      // Non-recoverable Error
+      if (e.type === 'cancel-request-result-stream-error') {
+        console.log('A fatal/non-recoverable error was obtained from the CancelRequestResultStream; the CancelRequestConsumer Lambda is unable to send POST requests to the stream; the CancelRequestConsumer Lambda will NOT restart');
+
+        return false
       }
 
       console.log(`a non-recoverable error occured; the Lambda will not restart; ${e.message}`);

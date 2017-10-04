@@ -242,6 +242,24 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
       expect(cbSpy).to.be.called;
     });
 
+    it('should return the callback with (null, item) for statusCode 403', () => {
+      let cbSpy = sinon.spy();
+
+      ApiHelper.handleApiErrors({ responseType: 'response', statusCode: 403, statusText: 'internal-server-error' }, 'checkin-service', { id: 123 }, cbSpy);
+
+
+      expect(cbSpy).to.be.calledWith(null, { id: 123 });
+    });
+
+    it('should return the callback with (null, item) for statusCode 404', () => {
+      let cbSpy = sinon.spy();
+
+      ApiHelper.handleApiErrors({ responseType: 'response', statusCode: 404, statusText: 'internal-server-error' }, 'checkin-service', { id: 123 }, cbSpy);
+
+
+      expect(cbSpy).to.be.calledWith(null, { id: 123 });
+    });
+
     it('should return the callback with a CancelRequestConsumerError as a general-service-error if the serviceType is not defined', () => {
       let cbSpy = sinon.spy();
 
@@ -253,20 +271,6 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
       expect(errArg.message).to.equal('An error was received for Cancel Request Record (123); the service responded with a status code: (500) and status text: internal-server-error');
       expect(errArg.type).to.equal('service-error');
       expect(errArg.statusCode).to.equal(500);
-      expect(cbSpy).to.be.called;
-    });
-
-    it('should return the callback with a CancelRequestConsumerError if the statusCode is NOT 404', () => {
-      let cbSpy = sinon.spy();
-
-      ApiHelper.handleApiErrors({ responseType: 'response', statusCode: 403, statusText: 'Unauthorized' }, 'checkin-service', { id: 123 }, cbSpy);
-
-      const errArg = cbSpy.firstCall.args[0];
-
-      expect(errArg).to.be.instanceof(CancelRequestConsumerError);
-      expect(errArg.message).to.equal('An error was received from the checkin-service for Cancel Request Record (123); the service responded with a status code: (403) and status text: unauthorized');
-      expect(errArg.type).to.equal('checkin-service-error');
-      expect(errArg.statusCode).to.equal(403);
       expect(cbSpy).to.be.called;
     });
 

@@ -153,7 +153,7 @@ const ApiHelper = {
         );
       }
 
-      if (statusCode !== 404) {
+      if (statusCode >= 500) {
         return callback(
           new CancelRequestConsumerError(
             errorMessage,
@@ -166,14 +166,17 @@ const ApiHelper = {
         );
       }
 
-      // Only skip item when status is 404
+      // Only skip item when status is NOT 5xx or 401
       return callback(null, item);
     }
 
     // TODO: Add Logging
-    return callback(new CancelRequestConsumerError(
-      errorMessage, { type: errorType, debugInfo: errorObject }
-    ));
+    return callback(
+      new CancelRequestConsumerError(
+        errorMessage,
+        { type: errorType, debugInfo: errorObject }
+      )
+    );
   },
   handleCancelItemPostRequests(items, serviceType, apiUrl, token) {
     if (!items) {
@@ -257,7 +260,7 @@ const ApiHelper = {
         })
         .catch(error => {
           const errorResponse = this.generateErrorResponseObject(error);
-          // console.log('checkout error: ', errorResponse);
+          console.log('Checkout Service Error: ', errorResponse);
           // Assign the error clean error object to the item
           item.error = errorResponse;
           // Handle retries or fatal errors by error status code
@@ -296,7 +299,7 @@ const ApiHelper = {
       })
       .catch(error => {
         const errorResponse = this.generateErrorResponseObject(error);
-        // console.log('checkin error: ', errorResponse);
+        console.log('Checkin Service Error: ', errorResponse);
         // Assign the error clean error object to the item
         item.error = errorResponse;
         // Handle retries or fatal errors by error status code
