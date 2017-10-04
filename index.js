@@ -8,7 +8,6 @@ import { postItemsToStream } from './src/helpers/StreamHelper';
 
 exports.handleKinesisAsyncProcessing = async function(records, opts, context, callback) {
   try {
-    // Destructure configuration params
     const {
       oAuthProviderUrl,
       oAuthClientId,
@@ -44,7 +43,6 @@ exports.handleKinesisAsyncProcessing = async function(records, opts, context, ca
     const processedCheckedInItems = await ApiHelper.handleCancelItemPostRequests(processedCheckedOutItems, 'checkin-service', nyplCheckinRequestApiUrl, Cache.getToken());
     // console.log(processedCheckedInItems);
     const proccessedItemsToStream = await postItemsToStream(processedCheckedInItems, cancelRequestResultStreamName, cancelRequestResultSchemaName, streamsClient);
-
     // console.log(proccessedItemsToStream);
 
     if (!proccessedItemsToStream || !Array.isArray(proccessedItemsToStream)) {
@@ -104,7 +102,6 @@ exports.handleKinesisAsyncProcessing = async function(records, opts, context, ca
 
     if (typeof e === 'string' || e instanceof String) {
       console.log(`a fatal error occured, the lambda will NOT restart; ${e}`);
-
       return false;
     } else {
       console.log(e);

@@ -7,6 +7,7 @@ import sinon from 'sinon';
 import sinonChai from 'sinon-chai';
 import CancelRequestConsumer from '../index.js';
 import CancelRequestConsumerError from '../src/helpers/ErrorHelper';
+import Cache from '../src/cache/CacheFactory';
 import event from '../sample/sample_event.json';
 chai.should();
 chai.use(sinonChai);
@@ -487,12 +488,7 @@ describe('CancelRequestConsumer Lambda: Handle Kinesis Stream Input', () => {
     });
 
     it('should throw an AvroValidationError and return false (no restart) when the Schema is incorrect', () => {
-      mock.onPost().reply(
-        200,
-        {
-          access_token: 'newAccessTokenResolved'
-        }
-      );
+      mock.onPost().reply(200, { access_token: 'newAccessTokenResolved' });
 
       const result = handleKinesisAsyncProcessing(
         event.Records,
