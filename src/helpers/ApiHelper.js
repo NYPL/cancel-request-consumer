@@ -249,7 +249,7 @@ const ApiHelper = {
       item.checkoutProccessed = false;
 
       if (typeof item.patronBarcode === 'string' && item.patronBarcode.trim() !== '' && typeof item.itemBarcode === 'string' && item.itemBarcode.trim() !== '') {
-        logger.info(`Posting Cancel Request Item (${item.id}) to checkout-service`);
+        logger.info(`Posting Cancel Request Record (${item.id}) to checkout-service`);
 
         return axios.post(apiUrl, this.generateCheckoutApiModel(item), this.getApiHeaders(token))
         .then(result => {
@@ -257,7 +257,7 @@ const ApiHelper = {
           proccessedItem.checkoutApiResponse = this.generateSuccessfulResponseObject(result);
 
           if (this.isItemPostSuccessful(result, 'success')) {
-            logger.info(`Successfully posted Cancel Request Item (${item.id}) to checkout-service; assigned response to record`);
+            logger.info(`Successfully posted Cancel Request Record (${item.id}) to checkout-service; assigned response to record`);
             proccessedItem = Object.assign(proccessedItem, { checkoutProccessed: true }, { success : true });
           }
 
@@ -273,12 +273,12 @@ const ApiHelper = {
       }
 
       // Skip over item since patronBarcode and itemBarcode are not defined
-      logger.warning(`Unable to sent POST request for Cancel Request Item (${item.id}); patronBarcode or itemBarcode are not defined`, { cancelRequestId: item.id });
+      logger.warning(`Unable to sent POST request for Cancel Request Record (${item.id}); patronBarcode or itemBarcode are not defined`, { cancelRequestId: item.id });
       return callback(null, item);
     }
 
     // Item is not defined, skip to the next item and async callback will filter undefined elements
-    logger.warning(`Unable to sent POST request for Cancel Request Item; the item object is not defined`);
+    logger.warning(`Unable to sent POST request for Cancel Request Record; the item object is not defined`);
     return callback(null);
   },
   postCheckInItem(apiUrl, token, errorHandlerFn, item, callback) {
@@ -286,7 +286,7 @@ const ApiHelper = {
     item.checkinProccessed = false;
 
     if (item.checkoutProccessed === true) {
-      logger.info(`Posting Cancel Request Item (${item.id}) to checkin-service`);
+      logger.info(`Posting Cancel Request Record (${item.id}) to checkin-service`);
 
       return axios.post(apiUrl, this.generateCheckinApiModel(item), this.getApiHeaders(token))
       .then(result => {
@@ -294,7 +294,7 @@ const ApiHelper = {
         proccessedItem.checkinApiResponse = this.generateSuccessfulResponseObject(result);
 
         if (this.isItemPostSuccessful(result, 'success')) {
-          logger.info(`Successfully posted Cancel Request Item (${item.id}) to checkin-service; assigned response to record`);
+          logger.info(`Successfully posted Cancel Request Record (${item.id}) to checkin-service; assigned response to record`);
           proccessedItem = Object.assign(proccessedItem, { checkinProccessed: true }, { success : true });
         }
 
@@ -310,7 +310,7 @@ const ApiHelper = {
     }
 
     // Skip over item since itemBarcode is not defined and checkoutProccessed is false
-    logger.info(`Unable to sent POST request to checkin-service for Cancel Request Item (${item.id}); checkoutProccessed is false which indicates this item was not checked out`);
+    logger.info(`Unable to sent POST request to checkin-service for Cancel Request Record (${item.id}); checkoutProccessed is false which indicates this item was not checked out`);
     return callback(null, item);
   }
 };
