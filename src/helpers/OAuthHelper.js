@@ -2,6 +2,7 @@
 import axios from 'axios';
 import qs from 'qs';
 import CancelRequestConsumerError from './ErrorHelper';
+import logger from './Logger';
 
 const getOauthConfig = function (clientId, clientSecret, scope, grantType = 'client_credentials') {
   if (!clientId || typeof clientId !== 'string' || clientId.trim() === '') {
@@ -46,12 +47,22 @@ const fetchAccessToken = function (oauthUrl, clientId, clientSecret, scope, gran
       )
     );
   }).catch(error => {
-    // console.log('an error occured from the OAuth Service; received a status outside of the 2xx range');
+    let errorMessage = 'An error occured from the OAuth Service';
+
     if (error.response) {
-      const statusCode = error.response.status || '';
+      const statusCode = error.response.status;
+      const statusText = error.response.statusText;
+      if (statusCode) {
+        errorMessage += `; the service responded with status code: (${statusCode})`;
+      }
+      if (statusText) {
+        errorMessage += ` and status text: (${statusText})`;
+      }
+
+      logger.error(errorMessage, { debugInfo: error.response });
       return Promise.reject(
         new CancelRequestConsumerError(
-          `an error occured from the OAuth Service; the service responded with status code: (${statusCode})`,
+          errorMessage,
           {
             type: 'oauth-service-error',
             statusCode: error.response.status || null
@@ -61,9 +72,12 @@ const fetchAccessToken = function (oauthUrl, clientId, clientSecret, scope, gran
     }
 
     if (error.request) {
+      errorMessage += '; the request was made, no response received from OAuth Service';
+
+      logger.error(errorMessage, { debugInfo: error.request });
       return Promise.reject(
         new CancelRequestConsumerError(
-          'an error occurred from the OAuth Service; the request was made, no response received from OAuth Service',
+          errorMessage,
           {
             type: 'oauth-service-error',
             debugInfo: error.request
@@ -73,12 +87,17 @@ const fetchAccessToken = function (oauthUrl, clientId, clientSecret, scope, gran
     }
 
     if (error.type === 'invalid-access-token-response') {
+      errorMessage += `; ${error.message}`;
+
+      logger.error(errorMessage, { debugInfo: error });
       return Promise.reject(error);
     }
 
+    errorMessage += '; an fatal server error occurred from the OAuth Service';
+    logger.error(errorMessage, { debugInfo: error });
     return Promise.reject(
       new CancelRequestConsumerError(
-        'an internal server error occurred from the OAuth Service',
+        errorMessage,
         {
           type: 'oauth-service-error',
           debugInfo: error

@@ -1,4 +1,5 @@
 import CancelRequestConsumerError from '../helpers/ErrorHelper';
+import logger from '../helpers/Logger';
 
 const Cache = {
   token: null,
@@ -12,17 +13,17 @@ const Cache = {
     let filteredRecords = [];
 
     if (records && Array.isArray(records) && records.length > 0) {
-      console.log('filtering out decoded records with a processed flag equal to true; may result in an empty array');
+      logger.info('Filtering out decoded records with a processed flag equal to true; may result in an empty array');
 
       filteredRecords = records.filter(record => {
         if (record.processed) {
-          console.log(`filtered out Cancel Request Record (${record.id}); contains the proccessed flag set as true and has been removed from the records array for further processing`);
+          logger.info(`Filtered out Cancel Request Record (${record.id}); contains the proccessed flag set as true and has been removed from the records array for further processing`);
         }
 
         return !record.processed;
       });
 
-      console.log(`total records decoded: ${records.length}; total records to process: ${filteredRecords.length}`);
+      logger.info(`Total records decoded: ${records.length}; Total records to process: ${filteredRecords.length}`);
     }
 
     // return filteredRecords;

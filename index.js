@@ -5,6 +5,7 @@ import ApiHelper from './src/helpers/ApiHelper';
 import Cache from './src/cache/CacheFactory';
 import CancelRequestConsumerError from './src/helpers/ErrorHelper';
 import { postItemsToStream } from './src/helpers/StreamHelper';
+import logger from './src/helpers/Logger';
 
 exports.handleKinesisAsyncProcessing = async function(records, opts, context, callback) {
   try {
@@ -31,10 +32,10 @@ exports.handleKinesisAsyncProcessing = async function(records, opts, context, ca
     const unprocessedRecords = await Cache.filterProcessedRecords(decodedRecords);
 
     if (tokenResponse.tokenType === 'new-token') {
-      console.log('setting a new access token from OAuth Service');
+      logger.info('obtained a new access token from the OAuth Service');
       Cache.setToken(tokenResponse.token);
     } else {
-      console.log('using an existing access token from Cache');
+      logger.info('using existing access token from Cache');
     }
 
     // console.log(decodedRecords);
@@ -46,65 +47,67 @@ exports.handleKinesisAsyncProcessing = async function(records, opts, context, ca
     // console.log(proccessedItemsToStream);
 
     if (!proccessedItemsToStream || !Array.isArray(proccessedItemsToStream)) {
+      logger.error('The CancelRequestConsumer Lambda failed to proccess all Cancel Request Items', { proccessedItemsToStream: proccessedItemsToStream });
       return callback('The CancelRequestConsumer Lambda failed to proccess all Cancel Request Items');
     }
 
+    logger.info('The CancelRequestConsumer Lambda has successfully processed all Cancel Request Items; no fatal errors have occured');
     return callback(null, 'The CancelRequestConsumer Lambda has successfully processed all Cancel Request Items; no fatal errors have occured');
   } catch (e) {
     if (e.name === 'AvroValidationError') {
-      console.log('A fatal/non-recoverable AvroValidationError occured which prohibits decoding the kinesis stream; the CancelRequestConsumer Lambda will NOT restart');
+      logger.error('A fatal/non-recoverable AvroValidationError occured which prohibits decoding the kinesis stream; the CancelRequestConsumer Lambda will NOT restart', { debugInfo: e });
       return false;
     }
 
     if (e.name === 'CancelRequestConsumerError') {
       if (e.type === 'filtered-records-array-empty') {
+        logger.info('The CancelRequestConsumer Lambda has successfully processed all Cancel Request Items; no fatal errors have occured');
         return callback(null, 'The CancelRequestConsumer Lambda has no records to proccess; all processed records were filtered out resulting in an empty array; no fatal errors have occured');
       }
 
       // Recoverable Error: Reset the access_token
       if (e.statusCode === 401) {
-        console.log('Restarting the CancelRequestConsumer Lambda to fetch a new access_token; the OAuth access_token has expired');
-
+        logger.notice('Restarting the CancelRequestConsumer Lambda to fetch a new access_token; the OAuth access_token has expired');
+        Cache.setToken(null);
         return callback(e.message);
       }
 
       // Recoverable Error: OAuth Service may be temporarily down; retriable error.
       if (e.type === 'oauth-service-error' && e.statusCode >= 500) {
-        console.log('Restarting the CancelRequestConsumer Lambda; a 5xx error was caught from the oauth-service');
-
+        logger.notice('Restarting the CancelRequestConsumer Lambda; a 5xx error was caught from the OAuth Service', { debugInfo: e });
         return callback(e.message);
       }
 
       // Recoverable Error: Checkout Service may be temporarily down; retriable error.
       if (e.type === 'checkout-service-error' && e.statusCode >= 500) {
-        console.log('Restarting the CancelRequestConsumer Lambda; a 5xx error was caught from the checkout-service');
-
+        logger.notice('Restarting the CancelRequestConsumer Lambda; a 5xx error was caught from the Checkout Service', { debugInfo: e });
         return callback(e.message);
       }
 
       // Recoverable Error: Checkout Service may be temporarily down; retriable error.
       if (e.type === 'checkin-service-error' && e.statusCode >= 500) {
-        console.log('Restarting the CancelRequestConsumer Lambda; a 5xx error was caught from the checkin-service');
-
+        logger.notice('Restarting the CancelRequestConsumer Lambda; a 5xx error was caught from the Checkin Service', { debugInfo: e });
         return callback(e.message);
       }
 
       // Non-recoverable Error
       if (e.type === 'cancel-request-result-stream-error') {
-        console.log('A fatal/non-recoverable error was obtained from the CancelRequestResultStream; the CancelRequestConsumer Lambda is unable to send POST requests to the stream; the CancelRequestConsumer Lambda will NOT restart');
-
+        logger.error(
+          'A fatal/non-recoverable error was obtained from the CancelRequestResultStream; the CancelRequestConsumer Lambda is unable to send POST requests to the stream; the CancelRequestConsumer Lambda will NOT restart',
+          { debugInfo: e }
+        );
         return false
       }
 
-      console.log(`a non-recoverable error occured; the Lambda will not restart; ${e.message}`);
+      logger.error(`a non-recoverable error occured; the Lambda will not restart; ${e.message}`, { debugInfo: e });
       return false;
     }
 
     if (typeof e === 'string' || e instanceof String) {
-      console.log(`a fatal error occured, the lambda will NOT restart; ${e}`);
+      logger.error(`a fatal error occured, the lambda will NOT restart; ${e}`, { debugInfo: e });
       return false;
     } else {
-      console.log(e);
+      logger.info('[handleKinesisAsyncProcessing function error]: Unhandled error occured', { debugInfo: e });
     }
   }
 };
@@ -190,8 +193,7 @@ exports.kinesisHandler = (records, opts, context, callback) => {
 
     return exports.handleKinesisAsyncProcessing(records, opts, context, callback);
   } catch (e) {
-    // console.log('kinesisHandler Error Caught', e);
-    // callback(e.message);
+    logger.error(`[kinesisHandler function error]: ${e.message}`, { debugInfo: e });
     return callback(e.message);
   }
 };
@@ -226,9 +228,9 @@ exports.handler = (event, context, callback) => {
 
       // Handle Production decryption and execution of kinesisHandler
     }
-
+    logger.error('[handler function error]: the event.Records array does not contain a kinesis stream of records to process');
     return callback(new Error('the event.Records array does not contain a kinesis stream of records to process'));
   }
-
+  logger.error('[handler function error]: the event.Records array is undefined');
   return callback(new Error('the event.Records array is undefined'));
 };

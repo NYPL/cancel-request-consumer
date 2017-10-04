@@ -1,6 +1,7 @@
 /* eslint-disable semi */
 import async from 'async';
 import CancelRequestConsumerError from './ErrorHelper';
+import logger from './Logger';
 
 const postItemsToStream = function (items, streamName, schemaName, streamsClient) {
   if (!items || !Array.isArray(items) || items.length === 0) {
@@ -36,7 +37,7 @@ const postItemsToStream = function (items, streamName, schemaName, streamsClient
 
         return streamsClient.write(streamName, itemToPost, { avroSchemaName: schemaName })
         .then(response => {
-          console.log(`successfully posted Cancel Request Record (${item.id}) to CancelRequestResultStream`);
+          logger.info(`successfully posted Cancel Request Record (${item.id}) to CancelRequestResultStream`, { cancelRequestId: item.id });
           item.proccessedToResultStream = true;
 
           return callback(null, item);
