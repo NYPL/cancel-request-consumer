@@ -120,7 +120,7 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
   });
 
   describe('generateErrorResponseObject(object) function', () => {
-    it('should return the correct properties when the object contains the response key', () => {
+    it('should return the correct properties when the object contains the response key and the payload is not a string object', () => {
       generateErrorResponseObjectStub.restore();
       const errorResponseObject = ApiHelper.generateErrorResponseObject({
         response: {
@@ -143,6 +143,36 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
         method: 'POST',
         url: 'http://apiurl.org',
         payload: 'patron',
+        statusCode: 404,
+        statusText: 'Not Found',
+        errorType: 'ncip-error',
+        errorMessage: 'Item not found'
+      });
+    });
+
+    it('should return the correct properties when the object contains the response key and the payload is a string object', () => {
+      generateErrorResponseObjectStub.restore();
+      const errorResponseObject = ApiHelper.generateErrorResponseObject({
+        response: {
+          config: {
+            method: 'POST',
+            url: 'http://apiurl.org',
+            data: '{"name":"John", "age":30, "city":"New York"}'
+          },
+          status: 404,
+          statusText: 'Not Found',
+          data: {
+            type: 'ncip-error',
+            message: 'Item not found'
+          }
+        }
+      });
+
+      return errorResponseObject.should.deep.equal({
+        responseType: 'response',
+        method: 'POST',
+        url: 'http://apiurl.org',
+        payload: { name: 'John', age: 30, city: 'New York' },
         statusCode: 404,
         statusText: 'Not Found',
         errorType: 'ncip-error',

@@ -70,7 +70,12 @@ const ApiHelper = {
         }
 
         if (apiConfigResponse.data) {
-          errorObject.payload = (typeof apiConfigResponse.data === 'string') ? JSON.parse(apiConfigResponse.data) : apiConfigResponse.data;
+          const payload = apiConfigResponse.data;
+          if (typeof payload === 'string' && payload.charAt(0) === '{' && payload.charAt(payload.length -1) === '}') {
+            errorObject.payload = JSON.parse(payload);
+          } else {
+            errorObject.payload = apiConfigResponse.data;
+          }
         }
       }
       // Get status code
