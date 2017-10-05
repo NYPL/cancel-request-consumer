@@ -111,7 +111,7 @@ if (process.env.NODE_ENV === 'production' && process.env.SLACK_WEBHOOK_URL && pr
           }
 
           if (options.meta && Object.keys(options.meta).length) {
-            slackText += '*Meta*:\n' + '```' + CircularJSON.stringify(JSON.truncate(options.meta, { maxDepth: 3, replace: '[Truncated]' }), null, '\t') + '```' + '\n';
+            slackText += '*Meta*:\n' + '```' + CircularJSON.stringify(JSON.truncate(options.meta, { maxDepth: 4, replace: '[Truncated...]' }), null, '\t') + '```' + '\n';
           }
         }
 
