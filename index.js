@@ -35,10 +35,10 @@ exports.handleKinesisAsyncProcessing = async function(records, opts, context, ca
     const unprocessedRecords = await Cache.filterProcessedRecords(decodedRecords);
 
     if (tokenResponse.tokenType === 'new-token') {
-      logger.info('obtained a new access token from the OAuth Service');
+      logger.info('Obtained a new access token from the OAuth Service');
       Cache.setToken(tokenResponse.token);
     } else {
-      logger.info('using existing access token from Cache');
+      logger.info('Using existing access token from Cache');
     }
 
     // console.log(decodedRecords);
