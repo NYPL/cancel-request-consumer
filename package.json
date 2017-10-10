@@ -75,7 +75,12 @@
       "babel-register"
     ],
     "sourceMap": false,
-    "instrument": false
+    "instrument": false,
+    "exclude": [
+      "**/*.spec.js",
+      "dist/*",
+      "src/helpers/Logger.js"
+    ]
   },
   "standard": {
     "env": {
