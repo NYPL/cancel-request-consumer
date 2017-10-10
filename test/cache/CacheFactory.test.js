@@ -30,6 +30,19 @@ describe('CancelRequestConsumer Lambda: Cache Factory', () => {
     expect(Cache.token).to.equal(newToken);
   });
 
+  it('should initialize the nodeENv property based off process.env.NODE_ENV', () => {
+    expect(Cache.nodeEnv).to.equal(process.env.NODE_ENV);
+  });
+
+  it('should get the nodeEnv value via getNodeEnv() function', () => {
+    expect(Cache.nodeEnv).to.equal(Cache.getNodeEnv());
+  });
+
+  it('should set the nodeEnv property when using setNodeEnv(env) function', () => {
+    Cache.setNodeEnv('dev');
+    expect(Cache.getNodeEnv()).to.equal('dev');
+  });
+
   it('should have a filterProcessedRecords function', () => {
     expect(Cache.filterProcessedRecords).to.be.a('function');
   });
