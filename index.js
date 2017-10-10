@@ -41,13 +41,9 @@ exports.handleKinesisAsyncProcessing = async function(records, opts, context, ca
       logger.info('Using existing access token from Cache');
     }
 
-    // console.log(decodedRecords);
     const processedCheckedOutItems = await ApiHelper.handleCancelItemPostRequests(unprocessedRecords, 'checkout-service', nyplCheckoutRequestApiUrl, Cache.getToken());
-    // console.log(processedCheckedOutItems);
     const processedCheckedInItems = await ApiHelper.handleCancelItemPostRequests(processedCheckedOutItems, 'checkin-service', nyplCheckinRequestApiUrl, Cache.getToken());
-    // console.log(processedCheckedInItems);
     const proccessedItemsToStream = await postItemsToStream(processedCheckedInItems, cancelRequestResultStreamName, cancelRequestResultSchemaName, streamsClient);
-    // console.log(proccessedItemsToStream);
 
     if (!proccessedItemsToStream || !Array.isArray(proccessedItemsToStream)) {
       logger.error('The CancelRequestConsumer Lambda failed to proccess all Cancel Request Items', { proccessedItemsToStream: proccessedItemsToStream });
@@ -265,9 +261,11 @@ exports.handler = (event, context, callback) => {
           return callback(new Error('[handler function error]: an error occured while decrypting the Lambda ENV variables via LambdaEnvVarsClient'));
         });
     }
+
     logger.error('[handler function error]: the event.Records array does not contain a kinesis stream of records to process');
     return callback(new Error('the event.Records array does not contain a kinesis stream of records to process'));
   }
+
   logger.error('[handler function error]: the event.Records array is undefined');
   return callback(new Error('the event.Records array is undefined'));
 };
