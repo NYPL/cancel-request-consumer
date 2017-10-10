@@ -29,10 +29,17 @@ describe('CancelRequestConsumer Lambda: Handle Kinesis Stream Input', () => {
       kinesisHandlerStub.restore();
     });
 
-    it('should call the kinesisHandler function', () => {
+    it('should call the kinesisHandler function without ENCRYPTION when the NODE_ENV is not production', () => {
       CancelRequestConsumer.handler(event);
-
+      expect(Cache.isProductionEnv()).to.equal(false);
       expect(kinesisHandlerStub).to.be.called;
+    });
+
+    it('should NOT call the kinesisHandler directly when the NODE_ENV is production and use the ENCRYPTION client', () => {
+      Cache.setNodeEnv('production');
+      CancelRequestConsumer.handler(event);
+      expect(Cache.isProductionEnv()).to.equal(true);
+      expect(kinesisHandlerStub).not.to.be.called;
     });
 
     it('should fire the callback function with an error if the event is NULL', () => {

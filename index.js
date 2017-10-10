@@ -1,11 +1,14 @@
 /* eslint-disable semi */
 import NyplStreamsClient from '@nypl/nypl-streams-client';
+import LambdaEnvVars from 'lambda-env-vars';
 import { handleAuthentication, fetchAccessToken } from './src/helpers/OAuthHelper';
 import ApiHelper from './src/helpers/ApiHelper';
 import Cache from './src/cache/CacheFactory';
 import CancelRequestConsumerError from './src/helpers/ErrorHelper';
 import { postItemsToStream } from './src/helpers/StreamHelper';
 import logger from './src/helpers/Logger';
+
+const lambdaEnvVarsClient = new LambdaEnvVars();
 
 exports.handleKinesisAsyncProcessing = async function(records, opts, context, callback) {
   try {
@@ -32,10 +35,10 @@ exports.handleKinesisAsyncProcessing = async function(records, opts, context, ca
     const unprocessedRecords = await Cache.filterProcessedRecords(decodedRecords);
 
     if (tokenResponse.tokenType === 'new-token') {
-      logger.info('obtained a new access token from the OAuth Service');
+      logger.info('Obtained a new access token from the OAuth Service');
       Cache.setToken(tokenResponse.token);
     } else {
-      logger.info('using existing access token from Cache');
+      logger.info('Using existing access token from Cache');
     }
 
     // console.log(decodedRecords);
@@ -199,14 +202,14 @@ exports.kinesisHandler = (records, opts, context, callback) => {
 };
 
 exports.handler = (event, context, callback) => {
-  const isProductionEnv = process.env.NODE_ENV === 'production';
-
   if (event && Array.isArray(event.Records) && event.Records.length > 0) {
     const record = event.Records[0];
     // Handle Kinesis Stream
     if (record.kinesis && record.kinesis.data) {
       // Execute the handler in local development mode, without decryption
-      //if (!isProductionEnv) {
+      if (!Cache.isProductionEnv()) {
+        logger.info('executing kinesisHandler in local development mode');
+
         return exports.kinesisHandler(
           event.Records,
           {
@@ -224,9 +227,43 @@ exports.handler = (event, context, callback) => {
           context,
           callback
         );
-      //}
+      }
 
       // Handle Production decryption and execution of kinesisHandler
+      return lambdaEnvVarsClient.getCustomDecryptedValueList(
+        [
+          'OAUTH_CLIENT_ID',
+          'OAUTH_CLIENT_SECRET',
+          'OAUTH_PROVIDER_SCOPE'
+        ],
+        { location: 'lambdaConfig' })
+        .then(resultObject => {
+          return exports.kinesisHandler(
+            event.Records,
+            {
+              nyplDataApiBaseUrl: process.env.NYPL_DATA_API_BASE_URL,
+              recapCancelRequestSchema: process.env.RECAP_CANCEL_REQUEST_SCHEMA_NAME,
+              nyplCheckinRequestApiUrl: process.env.NYPL_CHECKIN_REQUEST_API_URL,
+              nyplCheckoutRequestApiUrl: process.env.NYPL_CHECKOUT_REQUEST_API_URL,
+              cancelRequestResultSchemaName: process.env.CANCEL_REQUEST_RESULT_SCHEMA_NAME,
+              cancelRequestResultStreamName: process.env.CANCEL_REQUEST_RESULT_STREAM_NAME,
+              oAuthProviderUrl: process.env.OAUTH_PROVIDER_URL,
+              oAuthClientId: resultObject.OAUTH_CLIENT_ID,
+              oAuthClientSecret: resultObject.OAUTH_CLIENT_SECRET,
+              oAuthProviderScope: resultObject.OAUTH_PROVIDER_SCOPE
+            },
+            context,
+            callback
+          );
+        })
+        .catch(error => {
+          logger.error(
+            '[handler function error]: an error occured while decrypting the Lambda ENV variables via LambdaEnvVarsClient',
+            { debugInfo: error }
+          );
+
+          return callback(new Error('[handler function error]: an error occured while decrypting the Lambda ENV variables via LambdaEnvVarsClient'));
+        });
     }
     logger.error('[handler function error]: the event.Records array does not contain a kinesis stream of records to process');
     return callback(new Error('the event.Records array does not contain a kinesis stream of records to process'));
