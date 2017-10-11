@@ -277,7 +277,6 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
 
       ApiHelper.handleApiErrors({ responseType: 'response', statusCode: 403, statusText: 'internal-server-error' }, 'checkin-service', { id: 123 }, cbSpy);
 
-
       expect(cbSpy).to.be.calledWith(null, { id: 123 });
     });
 
@@ -285,7 +284,6 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
       let cbSpy = sinon.spy();
 
       ApiHelper.handleApiErrors({ responseType: 'response', statusCode: 404, statusText: 'internal-server-error' }, 'checkin-service', { id: 123 }, cbSpy);
-
 
       expect(cbSpy).to.be.calledWith(null, { id: 123 });
     });

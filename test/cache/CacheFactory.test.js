@@ -10,8 +10,8 @@ describe('CancelRequestConsumer Lambda: Cache Factory', () => {
   });
 
   it('should initialize the token property to NULL', () => {
-    expect(Cache.token).to.be.null;
-    expect(Cache.getToken()).to.be.null;
+    expect(Cache.token).to.equal(null);
+    expect(Cache.getToken()).to.equal(null);
   });
 
   it('should have a getToken function', () => {

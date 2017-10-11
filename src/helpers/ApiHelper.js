@@ -5,7 +5,7 @@ import CancelRequestConsumerError from './ErrorHelper';
 import logger from './Logger';
 
 const ApiHelper = {
-  getApiHeaders(token = '', contentType = 'application/json', timeOut = 10000) {
+  getApiHeaders (token = '', contentType = 'application/json', timeOut = 10000) {
     return {
       headers: {
         'Content-Type': contentType,
@@ -14,17 +14,17 @@ const ApiHelper = {
       timeout: timeOut
     };
   },
-  isItemPostSuccessful(responseObject, flag) {
+  isItemPostSuccessful (responseObject, flag) {
     return responseObject && responseObject.data && responseObject.data.data && responseObject.data.data[flag] === true;
   },
-  generateCheckoutApiModel(object) {
+  generateCheckoutApiModel (object) {
     const {
       id,
       jobId = null,
       patronBarcode,
       itemBarcode,
       owningInstitutionId = null,
-      desiredDateDue = null,
+      desiredDateDue = null
     } = object;
 
     return {
@@ -36,12 +36,12 @@ const ApiHelper = {
       desiredDateDue
     };
   },
-  generateCheckinApiModel(object) {
+  generateCheckinApiModel (object) {
     const {
       id,
       jobId = null,
       itemBarcode,
-      owningInstitutionId = null,
+      owningInstitutionId = null
     } = object;
 
     return {
@@ -51,7 +51,7 @@ const ApiHelper = {
       owningInstitutionId
     };
   },
-  generateErrorResponseObject(obj) {
+  generateErrorResponseObject (obj) {
     const responseObject = obj || {};
     const errorObject = {};
 
@@ -71,7 +71,7 @@ const ApiHelper = {
 
         if (apiConfigResponse.data) {
           const payload = apiConfigResponse.data;
-          if (typeof payload === 'string' && payload.charAt(0) === '{' && payload.charAt(payload.length -1) === '}') {
+          if (typeof payload === 'string' && payload.charAt(0) === '{' && payload.charAt(payload.length - 1) === '}') {
             errorObject.payload = JSON.parse(payload);
           } else {
             errorObject.payload = apiConfigResponse.data;
@@ -109,18 +109,18 @@ const ApiHelper = {
 
     return errorObject;
   },
-  generateSuccessfulResponseObject(responseObject) {
+  generateSuccessfulResponseObject (responseObject) {
     const {
       data: {
         data: dataResponse,
-        statusCode: statusCode,
-        debugInfo: debugInfo
+        statusCode,
+        debugInfo
       }
     } = responseObject;
 
     return Object.assign({}, dataResponse, { statusCode: statusCode }, { debugInfo: debugInfo });
   },
-  handleApiErrors(errorObj, serviceType, item, callback) {
+  handleApiErrors (errorObj, serviceType, item, callback) {
     const errorObject = errorObj || {};
     let errorType = 'service-error';
     let errorMessage = 'An error was received';
@@ -187,7 +187,7 @@ const ApiHelper = {
       )
     );
   },
-  handleCancelItemPostRequests(items, serviceType, apiUrl, token) {
+  handleCancelItemPostRequests (items, serviceType, apiUrl, token) {
     if (!items) {
       return Promise.reject(new CancelRequestConsumerError(
         'the items array parameter is undefined'
@@ -238,7 +238,7 @@ const ApiHelper = {
       );
     }
   },
-  handleBatchAsyncPostRequests(items, processingFn) {
+  handleBatchAsyncPostRequests (items, processingFn) {
     return new Promise((resolve, reject) => {
       return async.mapSeries(
         items,
@@ -248,7 +248,7 @@ const ApiHelper = {
       );
     });
   },
-  postCheckOutItem(apiUrl, token, errorHandlerFn, item, callback) {
+  postCheckOutItem (apiUrl, token, errorHandlerFn, item, callback) {
     if (item && typeof item === 'object' && item.id) {
       // initialize the boolean flag to false until a successful post updates to true
       item.checkoutProccessed = false;
@@ -263,7 +263,7 @@ const ApiHelper = {
 
           if (this.isItemPostSuccessful(result, 'success')) {
             logger.info(`Successfully posted Cancel Request Record (${item.id}) to checkout-service; assigned response to record`);
-            proccessedItem = Object.assign(proccessedItem, { checkoutProccessed: true }, { success : true });
+            proccessedItem = Object.assign(proccessedItem, { checkoutProccessed: true }, { success: true });
           }
 
           return callback(null, proccessedItem);
@@ -286,7 +286,7 @@ const ApiHelper = {
     logger.warning(`Unable to sent POST request for Cancel Request Record; the item object is not defined`);
     return callback(null);
   },
-  postCheckInItem(apiUrl, token, errorHandlerFn, item, callback) {
+  postCheckInItem (apiUrl, token, errorHandlerFn, item, callback) {
     // initialize the boolean flag to false until a successful post updates to true
     item.checkinProccessed = false;
 
@@ -300,7 +300,7 @@ const ApiHelper = {
 
         if (this.isItemPostSuccessful(result, 'success')) {
           logger.info(`Successfully posted Cancel Request Record (${item.id}) to checkin-service; assigned response to record`);
-          proccessedItem = Object.assign(proccessedItem, { checkinProccessed: true }, { success : true });
+          proccessedItem = Object.assign(proccessedItem, { checkinProccessed: true }, { success: true });
         }
 
         return callback(null, proccessedItem);

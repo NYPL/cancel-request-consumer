@@ -12,11 +12,11 @@ chai.use(chaiAsPromised);
 describe('CancelRequestConsumer Lambda: OAuthHelper Factory', () => {
   let mock;
 
-  beforeEach(function() {
+  beforeEach(() => {
     mock = new MockAdapter(axios);
   });
 
-  afterEach(function() {
+  afterEach(() => {
     mock.reset();
   });
 

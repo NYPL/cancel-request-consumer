@@ -10,7 +10,7 @@ import logger from './src/helpers/Logger';
 
 const lambdaEnvVarsClient = new LambdaEnvVars();
 
-exports.handleKinesisAsyncProcessing = async function(records, opts, context, callback) {
+exports.handleKinesisAsyncProcessing = async function (records, opts, context, callback) {
   try {
     const {
       oAuthProviderUrl,
@@ -84,7 +84,7 @@ exports.handleKinesisAsyncProcessing = async function(records, opts, context, ca
       }
 
       // Recoverable Error: Checkout Service may be temporarily down; retriable error.
-      if (e.type === 'checkin-service-error' (!e.statusCode || e.statusCode >= 500)) {
+      if (e.type === 'checkin-service-error' && (!e.statusCode || e.statusCode >= 500)) {
         logger.notice('Restarting the CancelRequestConsumer Lambda; a 5xx or a timeout error was caught from the Checkin Service', { debugInfo: e });
         return callback(e.message);
       }

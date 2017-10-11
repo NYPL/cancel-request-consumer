@@ -1,25 +1,26 @@
+/* eslint-disable semi */
 import CancelRequestConsumerError from '../helpers/ErrorHelper';
 import logger from '../helpers/Logger';
 
 const Cache = {
   token: null,
   nodeEnv: process.env.NODE_ENV,
-  getToken() {
+  getToken () {
     return this.token;
   },
-  setToken(token) {
+  setToken (token) {
     this.token = token;
   },
-  getNodeEnv() {
+  getNodeEnv () {
     return this.nodeEnv;
   },
-  setNodeEnv(env) {
+  setNodeEnv (env) {
     this.nodeEnv = env;
   },
-  isProductionEnv() {
+  isProductionEnv () {
     return this.nodeEnv === 'production';
   },
-  filterProcessedRecords(records) {
+  filterProcessedRecords (records) {
     let filteredRecords = [];
 
     if (records && Array.isArray(records) && records.length > 0) {

@@ -6,7 +6,6 @@ import chaiAsPromised from 'chai-as-promised';
 import sinon from 'sinon';
 import sinonChai from 'sinon-chai';
 import CancelRequestConsumer from '../index.js';
-import CancelRequestConsumerError from '../src/helpers/ErrorHelper';
 import Cache from '../src/cache/CacheFactory';
 import event from '../sample/sample_event.json';
 chai.should();
@@ -91,28 +90,24 @@ describe('CancelRequestConsumer Lambda: Handle Kinesis Stream Input', () => {
     const callbackSpy = sinon.spy();
 
     it('should catch a CancelRequestConsumerError and return the callback with the error message if the config options parameter is NULL', () => {
-
       kinesisHandlerFunc(event.Records, null, null, callbackSpy);
 
       expect(callbackSpy).to.be.calledWith('missing/undefined opts object configuration parameter');
     });
 
     it('should catch a CancelRequestConsumerError and return the callback with the error message if the config options parameter is UNDEFINED', () => {
-
       kinesisHandlerFunc(event.Records, undefined, null, callbackSpy);
 
       expect(callbackSpy).to.be.calledWith('missing/undefined opts object configuration parameter');
     });
 
     it('should catch a CancelRequestConsumerError and return the callback with the error message if the config options parameter is an EMPTY object', () => {
-
       kinesisHandlerFunc(event.Records, {}, null, callbackSpy);
 
       expect(callbackSpy).to.be.calledWith('missing/undefined opts object configuration parameter');
     });
 
     it('should catch a CancelRequestConsumerError and return the callback with the error message if the oAuthProviderUrl configuration parameter is undefined', () => {
-
       kinesisHandlerFunc(
         event.Records,
         {
