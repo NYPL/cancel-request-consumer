@@ -72,20 +72,20 @@ exports.handleKinesisAsyncProcessing = async function(records, opts, context, ca
       }
 
       // Recoverable Error: OAuth Service may be temporarily down; retriable error.
-      if (e.type === 'oauth-service-error' && e.statusCode >= 500) {
-        logger.notice('Restarting the CancelRequestConsumer Lambda; a 5xx error was caught from the OAuth Service', { debugInfo: e });
+      if (e.type === 'oauth-service-error' && (!e.statusCode || e.statusCode >= 500)) {
+        logger.notice('Restarting the CancelRequestConsumer Lambda; a 5xx or a timeout error was caught from the OAuth Service', { debugInfo: e });
         return callback(e.message);
       }
 
       // Recoverable Error: Checkout Service may be temporarily down; retriable error.
-      if (e.type === 'checkout-service-error' && e.statusCode >= 500) {
-        logger.notice('Restarting the CancelRequestConsumer Lambda; a 5xx error was caught from the Checkout Service', { debugInfo: e });
+      if (e.type === 'checkout-service-error' && (!e.statusCode || e.statusCode >= 500)) {
+        logger.notice('Restarting the CancelRequestConsumer Lambda; a 5xx or a timeout error was caught from the Checkout Service', { debugInfo: e });
         return callback(e.message);
       }
 
       // Recoverable Error: Checkout Service may be temporarily down; retriable error.
-      if (e.type === 'checkin-service-error' && e.statusCode >= 500) {
-        logger.notice('Restarting the CancelRequestConsumer Lambda; a 5xx error was caught from the Checkin Service', { debugInfo: e });
+      if (e.type === 'checkin-service-error' (!e.statusCode || e.statusCode >= 500)) {
+        logger.notice('Restarting the CancelRequestConsumer Lambda; a 5xx or a timeout error was caught from the Checkin Service', { debugInfo: e });
         return callback(e.message);
       }
 
