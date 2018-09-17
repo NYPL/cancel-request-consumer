@@ -1,7 +1,6 @@
 language: node_js
 node_js: "-'6.11'"
 install: npm install
-script: tests?
 cache:
   directories:
   - node_modules
