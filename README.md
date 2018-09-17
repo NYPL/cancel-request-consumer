@@ -33,7 +33,8 @@ $ npm install
 ```
 
 ### Developing Locally
-To develop and run your Lambda locally you must ensure to complete `Step 1` and `Step 2` of the Setup process.
+
+To develop and run your Lambda locally you must set up a config/local.env file with NODE_ENV=development
 
 ***REMINDER:*** Your `./config/local.env` and `./.env` environment variables ***MUST*** be configured in order for the next step to work.
 
@@ -45,20 +46,14 @@ $ npm run local-run // Code is transpiled into dist/ and node-lambda will use th
 ```
 
 ### Deploying your Lambda
-To deploy your Lambda function via the `node-lambda` module __**ensure**__ you have completed all the steps of the [Setup](#setup-configurations) process and have added all configuration variables required.
 
-The following NPM Commands will execute the `node-lambda deploy` command mapping configurations to the proper environments (qa & production). These commands can be modified in `package.json`.
+The following NPM Commands will execute the `node-lambda deploy` command mapping configurations to the proper environments. These commands can be modified in `package.json`.
 
 > Prior to the execution of any `npm deploy ...` commands, `npm run build` is executed to successfully transpile all ES7 code th Node 6.10.x
 
 * Runs `node-lambda deploy` with **DEVELOPMENT** configurations
 ```console
-$ npm run deploy-dev
-```
-
-* Runs `node-lambda deploy` with **PRODUCTION** configurations
-```console
-$ npm run deploy-prod
+$ npm run deploy-[development|qa|production]
 ```
 
 ### Tests
