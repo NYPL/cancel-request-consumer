@@ -34,7 +34,8 @@ $ npm install
 
 ### Developing Locally
 
-To develop and run your Lambda locally you must set up a config/local.env file with NODE_ENV=development
+To develop and run your Lambda locally you must set up a config/local.env file.
+If you do not encrypt the values of the OAUTH variables, you must set NODE_ENV to development
 
 ***REMINDER:*** Your `./config/local.env` and `./.env` environment variables ***MUST*** be configured in order for the next step to work.
 
