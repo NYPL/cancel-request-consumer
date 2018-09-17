@@ -16,7 +16,7 @@ deploy:
   script: "./scripts/travis-deploy.sh $ENVIRONMENT_NAME"
   on:
     all_branches: true
-    condition: "$TRAVIS_BRANCH =~ ^(development|qa|production)"
+    condition: "$TRAVIS_BRANCH =~ ^(development|qa|production)$"
 after_deploy: echo "Succesfully executed deploy trigger for $TRAVIS_BRANCH"
 env:
   global:
