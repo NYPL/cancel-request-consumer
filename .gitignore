@@ -21,3 +21,6 @@ coverage
 .DS_Store
 *.swp
 *.nyc_output
+
+
+config/local.env
