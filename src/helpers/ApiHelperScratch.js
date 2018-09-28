@@ -17,10 +17,31 @@ const ApiHelper = {
   isItemPostSuccessful (responseObject, flag) {
     return responseObject && responseObject.data && responseObject.data.data && responseObject.data.data[flag] === true;
   },
-  findPatronIdFromBarcode(object, token, apiUrl),
-  findItemIdFromBarcode(object, token, apiUrl),
-  responseHasItem(resp, item) {
-    return resp.data.entries.
+  findPatronIdFromBarcode(object, token, apiUrl) {
+    console.log(JSON.stringify(object), token, apiUrl)
+    console.log(this.getApiHeaders)
+    console.log(22, apiUrl + `patrons/find?varFieldTag=b&varFieldContent=${object.patronBarcode}`, this.getApiHeaders(token))
+    return axios.get(apiUrl + `patrons/find?varFieldTag=b&varFieldContent=${object.patronBarcode}`, this.getApiHeaders(token))
+    .then((resp) => {
+      object.patronId = resp.data.id;
+    })
+    .catch(() => {
+      console.log(`Error finding patron from url ${apiUrl} with barcode ${object.patronBarcode} when token is ${token}`)
+      logger.error(`Error finding patron from url ${apiUrl} with barcode ${object.patronBarcode} when tokenIsSet is ${!!token}`)
+    })
+  },
+  findItemIdFromBarcode(object, token, apiUrl) {
+    console.log(34, apiUrl+`items?barcode=${object.itemBarcode}`, this.getApiHeaders(token));
+    return axios.get(apiUrl+`items?barcode=${object.itemBarcode}`, this.getApiHeaders(token))
+    .then((resp) => {
+      console.log(37, resp.data, resp.data.data, resp.data.data[0], resp.data.data[0].id);
+      object.itemId = resp.data.data[0].id;
+    })
+    .catch((resp) => {
+      console.log(`Error finding item from url ${apiUrl} with barcode ${object.itemBarcode} when tokenIsSet is ${token}`)
+      console.log(apiUrl+`items?barcode=${object.itemBarcode}`, this.getApiHeaders(token))
+      logger.error(`Error finding item from url ${apiUrl} with barcode ${object.itemBarcode} when tokenIsSet is ${!!token}`)
+    })
   },
   getHoldrequestId(resp, itemId) {
     let cb = (acc, entry) => {
@@ -43,11 +64,13 @@ const ApiHelper = {
       holdRequestId = null
     } = object;
 
+    console.log(61, JSON.stringify(object,null,2))
+
     return new Promise((resolve, reject) => {
       axios.get(apiDataUrl + `patrons/${patronId}/holds?offset=${page}&limit=50`, getApiHeaders(token))
       .then((resp) => {
         let holdRequestIdGotten = getHoldrequestId(resp, itemId)
-        if holdRequestIdGotten {
+        if (holdRequestIdGotten) {
           item.holdRequestId = holdRequestIdGotten
           resolve()
         }
@@ -58,41 +81,8 @@ const ApiHelper = {
       })
 
     });
-  }
-  generateCheckoutApiModel (object) {
-    const {
-      id,
-      jobId = null,
-      patronBarcode,
-      itemBarcode,
-      owningInstitutionId = null,
-      desiredDateDue = null
-    } = object;
-
-    return {
-      cancelRequestId: id,
-      jobId,
-      patronBarcode,
-      itemBarcode,
-      owningInstitutionId,
-      desiredDateDue
-    };
   },
-  generateCheckinApiModel (object) {
-    const {
-      id,
-      jobId = null,
-      itemBarcode,
-      owningInstitutionId = null
-    } = object;
 
-    return {
-      cancelRequestId: id,
-      jobId,
-      itemBarcode,
-      owningInstitutionId
-    };
-  },
   generateErrorResponseObject (obj) {
     const responseObject = obj || {};
     const errorObject = {};
@@ -229,7 +219,7 @@ const ApiHelper = {
       )
     );
   },
-  handleCancelItemsDeleteRequests (items, token) {
+  handleCancelItemsDeleteRequests (items, sierraToken) {
     if (!items) {
       return Promise.reject(new CancelRequestConsumerError(
         'the items array parameter is undefined'
@@ -256,7 +246,7 @@ const ApiHelper = {
 
     return this.handleBatchAsyncPostRequests(
       items,
-      ApiHelper.deleteItem.bind(this, token, this.handleApiErrors)
+      ApiHelper.deleteItem.bind(this, sierraToken, this.handleApiErrors)
     )
 
   },
@@ -270,11 +260,11 @@ const ApiHelper = {
       );
     });
   },
-  deleteItem (token, errorHandlerFn, item, callback) {
+  deleteItem (sierraToken, errorHandlerFn, item, callback) {
     if (item.holdRequestId) {
       logger.info(`Deleting ${item.holdRequestId}`);
 
-      return axios.delete(item.holdRequestId, this.getApiHeaders(token))
+      return axios.delete(item.holdRequestId, this.getApiHeaders(sierraToken))
       .then(result => {
         let processedItem = item;
         proccessedItem.cancelApiResponse = this.generateSuccessfulResponseObject(result);
