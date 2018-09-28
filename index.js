@@ -1,14 +1,51 @@
 /* eslint-disable semi */
 import NyplStreamsClient from '@nypl/nypl-streams-client';
 import LambdaEnvVars from 'lambda-env-vars';
-import { handleAuthentication, fetchAccessToken } from './src/helpers/OAuthHelper';
-import ApiHelper from './src/helpers/ApiHelper';
+import { handleAuthentication, fetchAccessToken, fetchSierraToken } from './src/helpers/OAuthHelper';
+import ApiHelper from './src/helpers/ApiHelperScratch';
 import Cache from './src/cache/CacheFactory';
 import CancelRequestConsumerError from './src/helpers/ErrorHelper';
 import { postItemsToStream } from './src/helpers/StreamHelper';
 import logger from './src/helpers/Logger';
 
 const lambdaEnvVarsClient = new LambdaEnvVars();
+
+exports.processRecords = async function (records, opts, token, sierraToken) {
+  console.log('processing records', 'token', token, 'sierraToken', sierraToken)
+  try {
+    console.log(opts);
+    const {
+      oAuthProviderUrl,
+      oAuthClientId,
+      oAuthClientSecret,
+      oAuthProviderScope,
+      nyplDataApiBaseUrl,
+      recapCancelRequestSchema,
+      nyplCheckinRequestApiUrl,
+      nyplCheckoutRequestApiUrl,
+      cancelRequestResultSchemaName,
+      cancelRequestResultStreamName,
+      sierraUrl,
+      sierraId,
+      sierraSecret
+    } = opts;
+    let record;
+    for(let i = 0; i < records.length; i++) {
+      record = records[i];
+      console.log(`finding patron ${i}`);
+      console.log(35, JSON.stringify(record), token, sierraUrl, ApiHelper.findPatronIdFromBarcode)
+      await ApiHelper.findPatronIdFromBarcode(record, sierraToken, sierraUrl);
+      console.log(`finding item ${i}`);
+      await ApiHelper.findItemIdFromBarcode(record, token, nyplDataApiBaseUrl);
+      console.log(`generating ${i}`);
+      await ApiHelper.generateCancelApiModel(record, sierraToken, sierraUrl, ApiHelper.getHoldrequestId, ApiHelper.generateCancelApiModel)
+    }
+    return Promise.resolve(records);
+  } catch(e) {
+    logger.error("Error processing records");
+    return Promise.reject(e);
+  }
+},
 
 exports.handleKinesisAsyncProcessing = async function (records, opts, context, callback) {
   try {
@@ -22,28 +59,35 @@ exports.handleKinesisAsyncProcessing = async function (records, opts, context, c
       nyplCheckinRequestApiUrl,
       nyplCheckoutRequestApiUrl,
       cancelRequestResultSchemaName,
-      cancelRequestResultStreamName
+      cancelRequestResultStreamName,
+      sierraUrl,
+      sierraId,
+      sierraSecret
     } = opts;
-
+    console.log(60, JSON.stringify(opts));
     const streamsClient = new NyplStreamsClient({ nyplDataApiClientBase: nyplDataApiBaseUrl });
 
-    const [ tokenResponse, decodedRecords ] = await Promise.all([
-      handleAuthentication(Cache.getToken(), fetchAccessToken(oAuthProviderUrl, oAuthClientId, oAuthClientSecret, oAuthProviderScope)),
+    const [ tokenResponse, sierraTokenResponse, decodedRecords ] = await Promise.all([
+      handleAuthentication(Cache.getToken(), fetchAccessToken(oAuthProviderUrl, oAuthClientId, oAuthClientSecret, oAuthProviderScope), 'token'),
+      handleAuthentication(Cache.getSierraToken(), fetchSierraToken(sierraUrl, sierraId, sierraSecret), 'sierraToken'),
       streamsClient.decodeData(recapCancelRequestSchema, records.map(i => i.kinesis.data))
     ]);
 
     const unprocessedRecords = await Cache.filterProcessedRecords(decodedRecords);
+    const processedRecords = await exports.processRecords(unprocessedRecords, opts, tokenResponse.token, sierraTokenResponse.token);
 
-    if (tokenResponse.tokenType === 'new-token') {
-      logger.info('Obtained a new access token from the OAuth Service');
-      Cache.setToken(tokenResponse.token);
-    } else {
-      logger.info('Using existing access token from Cache');
-    }
+    [ tokenResponse, sierraTokenResponse].forEach((response) => {
 
-    const processedCheckedOutItems = await ApiHelper.handleCancelItemPostRequests(unprocessedRecords, 'checkout-service', nyplCheckoutRequestApiUrl, Cache.getToken());
-    const processedCheckedInItems = await ApiHelper.handleCancelItemPostRequests(processedCheckedOutItems, 'checkin-service', nyplCheckinRequestApiUrl, Cache.getToken());
-    const proccessedItemsToStream = await postItemsToStream(processedCheckedInItems, cancelRequestResultStreamName, cancelRequestResultSchemaName, streamsClient);
+      if (response.tokenType === 'new-token') {
+        logger.info(`Obtained a new access token from ${response.tokenName}`);
+        Cache.setToken(response.token, response.tokenName);
+      } else {
+        logger.info(`Using existing access token from Cache for ${response.tokenName}`);
+      }
+    })
+
+    const processedCancelledItems = await ApiHelper.handleCancelItemsDeleteRequests(processedRecords, Cache.getSierraToken());
+    const proccessedItemsToStream = await postItemsToStream(processedCancelledInItems, cancelRequestResultStreamName, cancelRequestResultSchemaName, streamsClient);
 
     if (!proccessedItemsToStream || !Array.isArray(proccessedItemsToStream)) {
       logger.error('The CancelRequestConsumer Lambda failed to proccess all Cancel Request Items', { proccessedItemsToStream: proccessedItemsToStream });
@@ -218,7 +262,10 @@ exports.handler = (event, context, callback) => {
             nyplCheckinRequestApiUrl: process.env.NYPL_CHECKIN_REQUEST_API_URL,
             nyplCheckoutRequestApiUrl: process.env.NYPL_CHECKOUT_REQUEST_API_URL,
             cancelRequestResultSchemaName: process.env.CANCEL_REQUEST_RESULT_SCHEMA_NAME,
-            cancelRequestResultStreamName: process.env.CANCEL_REQUEST_RESULT_STREAM_NAME
+            cancelRequestResultStreamName: process.env.CANCEL_REQUEST_RESULT_STREAM_NAME,
+            sierraUrl: process.env.SIERRA_URL,
+            sierraId: process.env.SIERRA_ID,
+            sierraSecret: process.env.SIERRA_SECRET
           },
           context,
           callback
@@ -230,10 +277,13 @@ exports.handler = (event, context, callback) => {
         [
           'OAUTH_CLIENT_ID',
           'OAUTH_CLIENT_SECRET',
-          'OAUTH_PROVIDER_SCOPE'
+          'OAUTH_PROVIDER_SCOPE',
+          'SIERRA_ID',
+          'SIERRA_SECRET'
         ],
         { location: 'lambdaConfig' })
         .then(resultObject => {
+          console.log(JSON.stringify(resultObject))
           return exports.kinesisHandler(
             event.Records,
             {
@@ -246,7 +296,10 @@ exports.handler = (event, context, callback) => {
               oAuthProviderUrl: process.env.OAUTH_PROVIDER_URL,
               oAuthClientId: resultObject.OAUTH_CLIENT_ID,
               oAuthClientSecret: resultObject.OAUTH_CLIENT_SECRET,
-              oAuthProviderScope: resultObject.OAUTH_PROVIDER_SCOPE
+              oAuthProviderScope: resultObject.OAUTH_PROVIDER_SCOPE,
+              sierraUrl: process.env.SIERRA_URL,
+              sierraId: resultObject.SIERRA_ID,
+              sierraSecret: resultObject.SIERRA_SECRET
             },
             context,
             callback
