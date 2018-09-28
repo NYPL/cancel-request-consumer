@@ -4,7 +4,7 @@ import qs from 'qs';
 import CancelRequestConsumerError from './ErrorHelper';
 import logger from './Logger';
 
-const getOauthConfig = function (clientId, clientSecret, scope, grantType = 'client_credentials') {
+const getBasicAuthConfig = function (clientId, clientSecret, scope, grantType = 'client_credentials') {
   if (!clientId || typeof clientId !== 'string' || clientId.trim() === '') {
     throw new CancelRequestConsumerError('the clientId parameter is not defined or invalid; must be of type string and not empty');
   }
@@ -29,10 +29,10 @@ const getBasicAuthHeaders = function (clientId, clientSecret) {
   return {"auth" : {"username" : clientId, "password" : clientSecret } }
 }
 
-const fetchAccessToken = function (authUrl, clientId, clientSecret, scope, grantType) {
+const fetchSierraToken = function (authUrl, clientId, clientSecret, scope, grantType) {
   if (!authUrl || typeof authUrl !== 'string' || authUrl.trim() === '') {
     return Promise.reject(
-      new CancelRequestConsumerError('the authUrl function parameter is not defined or invalid; must be of type string and not empty')
+      new CancelRequestConsumerError('fetchSierraToken: the authUrl function parameter is not defined or invalid; must be of type string and not empty')
     );
   }
 
@@ -46,13 +46,13 @@ const fetchAccessToken = function (authUrl, clientId, clientSecret, scope, grant
 
     return Promise.reject(
       new CancelRequestConsumerError(
-        'the oAuthResponse object contained an undefined access_token property',
+        'fetchSierraToken: the AuthResponse object contained an undefined access_token property',
         { type: 'invalid-access-token-response' }
       )
     );
   })
   .catch(error => {
-    let errorMessage = 'An error occurred from the auth service';
+    let errorMessage = 'fetchSierraToken: An error occurred from the auth service';
 
     if (error.response) {
       const statusCode = error.response.status;
