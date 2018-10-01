@@ -69,8 +69,7 @@ describe('CancelRequestConsumer Lambda: OAuthHelper Factory', () => {
       expect(result).to.be.an('object').and.to.deep.equal({
         client_id: 'clientId',
         client_secret: 'clientSecret',
-        grant_type: 'client_credentials',
-        scope: 'scope'
+        grant_type: 'client_credentials'
       });
     });
 
@@ -80,8 +79,7 @@ describe('CancelRequestConsumer Lambda: OAuthHelper Factory', () => {
       expect(result).to.be.an('object').and.to.deep.equal({
         client_id: 'clientId',
         client_secret: 'clientSecret',
-        grant_type: 'customGrantType',
-        scope: 'scope'
+        grant_type: 'customGrantType'
       });
     });
   });
@@ -142,9 +140,10 @@ describe('CancelRequestConsumer Lambda: OAuthHelper Factory', () => {
 
   describe('handleAuthentication(cachedToken, fetchTokenCallbackFn) function', () => {
     it('should resolve the Promise when the cachedToken parameter is already defined', () => {
-      const result = handleAuthentication('cachedTokenValue');
+      const result = handleAuthentication('cachedTokenValue', null, 'token');
       return result.should.be.fulfilled.and.should.eventually.deep.equal({
         tokenType: 'cached-token',
+        tokenName: 'token',
         token: 'cachedTokenValue'
       });
     });
@@ -157,10 +156,11 @@ describe('CancelRequestConsumer Lambda: OAuthHelper Factory', () => {
         }
       );
 
-      const result = handleAuthentication(null, fetchAccessToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope'));
+      const result = handleAuthentication(null, fetchAccessToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope'), 'token');
 
       return result.should.be.fulfilled.and.should.eventually.deep.equal({
         tokenType: 'new-token',
+        tokenName: 'token',
         token: 'newAccessTokenResolved'
       });
     });
@@ -168,7 +168,7 @@ describe('CancelRequestConsumer Lambda: OAuthHelper Factory', () => {
     it('should call the fetchTokenCallbackFn when the cachedToken is undefined and if an API (5xx) error occurs should reject the Promise with the error', () => {
       mock.onPost().reply(500);
 
-      const result = handleAuthentication(null, fetchAccessToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope'));
+      const result = handleAuthentication(null, fetchAccessToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope'), 'token');
 
       return result.should.be.rejected.and.should.eventually.have.property('statusCode', 500);
     });
@@ -176,7 +176,7 @@ describe('CancelRequestConsumer Lambda: OAuthHelper Factory', () => {
     it('should call the fetchTokenCallbackFn when the cachedToken is undefined and if an API (4xx) error occurs should reject the Promise with the error', () => {
       mock.onPost().reply(401);
 
-      const result = handleAuthentication(null, fetchAccessToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope'));
+      const result = handleAuthentication(null, fetchAccessToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope'), 'token');
 
       return result.should.be.rejected.and.should.eventually.have.property('statusCode', 401);
     });
