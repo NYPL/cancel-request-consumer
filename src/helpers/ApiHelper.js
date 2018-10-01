@@ -215,22 +215,16 @@ const ApiHelper = {
     );
   },
   handleCancelItemsDeleteRequests (items, sierraToken) {
-    console.log(228, items)
     if (!items) {
       return Promise.reject(new CancelRequestConsumerError(
         'the items array parameter is undefined'
       ));
     }
-
-    console.log(241)
-
     if (Array.isArray(items) === false) {
       return Promise.reject(new CancelRequestConsumerError(
         'the items array parameter is not of type array'
       ));
     }
-
-    console.log(247)
 
     if (items.length === 0) {
       return Promise.reject(new CancelRequestConsumerError(
@@ -238,16 +232,12 @@ const ApiHelper = {
       ));
     }
 
-    console.log(253)
-
     if (!sierraToken || typeof sierraToken !== 'string' || sierraToken.trim() === '') {
-      console.log(260)
       return Promise.reject(new CancelRequestConsumerError(
         'the token string parameter is not defined or empty'
       ));
     }
 
-    console.log(259, this.handleBatchAsyncPostRequests, this.deleteItem)
 
     return this.handleBatchAsyncPostRequests(
       items,
@@ -256,7 +246,6 @@ const ApiHelper = {
 
   },
   handleBatchAsyncPostRequests (items, processingFn) {
-    console.log(266, items, processingFn)
     return new Promise((resolve, reject) => {
       return async.mapSeries(
         items,
@@ -267,10 +256,8 @@ const ApiHelper = {
     });
   },
   deleteItem (sierraToken, errorHandlerFn, item, callback) {
-    console.log(270, sierraToken, errorHandlerFn, item, item.holdRequestId, callback)
     if (item.holdRequestId) {
       logger.info(`Deleting ${item.holdRequestId}`);
-      console.log('deleting', 289)
       return axios.delete(item.holdRequestId, this.getApiHeaders(sierraToken))
       .then(result => {
         let processedItem = item;
@@ -278,7 +265,6 @@ const ApiHelper = {
         if (this.isItemPostSuccessful(result)) {
           processedItem.deleted = true;
           logger.info(`Successfully cancelled using ${item.holdRequestId}`)
-          console.log(`Successfully cancelled using ${item.holdRequestId}`)
         }
 
         return callback(null, processedItem)

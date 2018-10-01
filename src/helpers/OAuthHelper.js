@@ -5,7 +5,6 @@ import CancelRequestConsumerError from './ErrorHelper';
 import logger from './Logger';
 
 const getOauthConfig = function (clientId, clientSecret, scope, grantType = 'client_credentials') {
-  //console.log('scope:', scope)
   if (!clientId || typeof clientId !== 'string' || clientId.trim() === '') {
     throw new CancelRequestConsumerError('the clientId parameter is not defined or invalid; must be of type string and not empty');
   }
@@ -34,11 +33,9 @@ const fetchAccessToken = function (oauthUrl, clientId, clientSecret, scope, gran
   }
 
   const oAuthConfig = getOauthConfig(clientId, clientSecret, scope, grantType);
-  console.log('url', oauthUrl, 'qs:', qs.stringify(oAuthConfig), 'end-qs')
   return axios.post(oauthUrl, qs.stringify(oAuthConfig))
   .then(result => {
     if (result.data && result.data.access_token) {
-      console.log(40, oauthUrl, result.data.access_token)
       return Promise.resolve(result.data.access_token);
     }
 
@@ -179,7 +176,6 @@ const fetchSierraToken = function (authUrl, clientId, clientSecret, scope, grant
 
 const handleAuthentication = async function (cachedToken, getNewTokenFn, name) {
   if (cachedToken && typeof cachedToken === 'string' && cachedToken !== '') {
-    console.log('cached', name)
     // Re-use cached access token
     return {
       tokenType: 'cached-token',
@@ -191,7 +187,6 @@ const handleAuthentication = async function (cachedToken, getNewTokenFn, name) {
   try {
     // Obtain a new access token
     const accessToken = await getNewTokenFn;
-    console.log(accessToken, name);
     return {
       tokenType: 'new-token',
       token: accessToken,
