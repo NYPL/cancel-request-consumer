@@ -5,6 +5,7 @@ import CancelRequestConsumerError from './ErrorHelper';
 import logger from './Logger';
 
 const getOauthConfig = function (clientId, clientSecret, scope, grantType = 'client_credentials') {
+  //console.log('scope:', scope)
   if (!clientId || typeof clientId !== 'string' || clientId.trim() === '') {
     throw new CancelRequestConsumerError('the clientId parameter is not defined or invalid; must be of type string and not empty');
   }
@@ -21,7 +22,7 @@ const getOauthConfig = function (clientId, clientSecret, scope, grantType = 'cli
     client_id: clientId,
     client_secret: clientSecret,
     grant_type: grantType,
-    scope
+    //scope
   };
 }
 
@@ -33,7 +34,7 @@ const fetchAccessToken = function (oauthUrl, clientId, clientSecret, scope, gran
   }
 
   const oAuthConfig = getOauthConfig(clientId, clientSecret, scope, grantType);
-
+  console.log('url', oauthUrl, 'qs:', qs.stringify(oAuthConfig), 'end-qs')
   return axios.post(oauthUrl, qs.stringify(oAuthConfig))
   .then(result => {
     if (result.data && result.data.access_token) {

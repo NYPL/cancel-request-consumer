@@ -70,7 +70,7 @@ const generateStreamModel = function (object) {
 
   objectToBePosted.cancelRequestId = object.id;
   objectToBePosted.jobId = object.jobId || null;
-  if (object.checkoutProccessed === true && object.checkinProccessed === true) {
+  if (object.deleted === true) {
     objectToBePosted.success = true;
     objectToBePosted.error = null;
   } else {
