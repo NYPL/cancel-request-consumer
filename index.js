@@ -2,7 +2,7 @@
 import NyplStreamsClient from '@nypl/nypl-streams-client';
 import LambdaEnvVars from 'lambda-env-vars';
 import { handleAuthentication, fetchAccessToken, fetchSierraToken } from './src/helpers/OAuthHelper';
-import ApiHelper from './src/helpers/ApiHelperScratch';
+import ApiHelper from './src/helpers/ApiHelper';
 import Cache from './src/cache/CacheFactory';
 import CancelRequestConsumerError from './src/helpers/ErrorHelper';
 import { postItemsToStream } from './src/helpers/StreamHelper';
@@ -11,9 +11,7 @@ import logger from './src/helpers/Logger';
 const lambdaEnvVarsClient = new LambdaEnvVars();
 
 exports.processRecords = async function (records, opts, token, sierraToken) {
-  console.log('processing records', 'token', token, 'sierraToken', sierraToken)
   try {
-    console.log(opts);
     const {
       oAuthProviderUrl,
       oAuthClientId,
@@ -32,13 +30,9 @@ exports.processRecords = async function (records, opts, token, sierraToken) {
     let record;
     for(let i = 0; i < records.length; i++) {
       record = records[i];
-      console.log(`finding patron ${i}`);
-      console.log(35, JSON.stringify(record), token, sierraUrl, ApiHelper.findPatronIdFromBarcode)
       await ApiHelper.findPatronIdFromBarcode(record, sierraToken, sierraUrl);
-      console.log(`finding item ${i}`);
       await ApiHelper.findItemIdFromBarcode(record, token, nyplDataApiBaseUrl);
-      console.log(`generating ${i}`);
-      await ApiHelper.generateCancelApiModel(record, sierraToken, sierraUrl, ApiHelper.getHoldrequestId, ApiHelper.generateCancelApiModel)
+      await ApiHelper.generateCancelApiModel(record, sierraToken, sierraUrl, ApiHelper.getHoldrequestId, ApiHelper.generateCancelApiModel, ApiHelper.getApiHeaders)
     }
     return Promise.resolve(records);
   } catch(e) {
@@ -64,7 +58,6 @@ exports.handleKinesisAsyncProcessing = async function (records, opts, context, c
       sierraId,
       sierraSecret
     } = opts;
-    console.log(60, JSON.stringify(opts));
     const streamsClient = new NyplStreamsClient({ nyplDataApiClientBase: nyplDataApiBaseUrl });
 
     const [ tokenResponse, sierraTokenResponse, decodedRecords ] = await Promise.all([
@@ -86,8 +79,9 @@ exports.handleKinesisAsyncProcessing = async function (records, opts, context, c
       }
     })
 
-    const processedCancelledItems = await ApiHelper.handleCancelItemsDeleteRequests(processedRecords, Cache.getSierraToken());
-    const proccessedItemsToStream = await postItemsToStream(processedCancelledInItems, cancelRequestResultStreamName, cancelRequestResultSchemaName, streamsClient);
+    let currentSierraToken  = Cache.getSierraToken()
+    const processedCancelledItems = await ApiHelper.handleCancelItemsDeleteRequests(processedRecords, currentSierraToken );
+    const proccessedItemsToStream = await postItemsToStream(processedCancelledItems, cancelRequestResultStreamName, cancelRequestResultSchemaName, streamsClient);
 
     if (!proccessedItemsToStream || !Array.isArray(proccessedItemsToStream)) {
       logger.error('The CancelRequestConsumer Lambda failed to proccess all Cancel Request Items', { proccessedItemsToStream: proccessedItemsToStream });
@@ -283,7 +277,6 @@ exports.handler = (event, context, callback) => {
         ],
         { location: 'lambdaConfig' })
         .then(resultObject => {
-          console.log(JSON.stringify(resultObject))
           return exports.kinesisHandler(
             event.Records,
             {
