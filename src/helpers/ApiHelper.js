@@ -14,43 +14,71 @@ const ApiHelper = {
       timeout: timeOut
     };
   },
-  isItemPostSuccessful (responseObject, flag) {
-    return responseObject && responseObject.data && responseObject.data.data && responseObject.data.data[flag] === true;
+  isItemPostSuccessful (responseObject) {
+    return responseObject && responseObject.status === 204
   },
-  generateCheckoutApiModel (object) {
+  findPatronIdFromBarcode(object, token, apiUrl) {
+    return axios.get(apiUrl + `patrons/find?varFieldTag=b&varFieldContent=${object.patronBarcode}`, this.getApiHeaders(token))
+    .then((resp) => {
+      object.patronId = resp.data.id;
+    })
+    .catch(() => {
+      logger.error(`Error finding patron from url ${apiUrl} with barcode ${object.patronBarcode} when tokenIsSet is ${!!token}`)
+    })
+  },
+  findItemIdFromBarcode(object, token, apiUrl) {
+    return axios.get(apiUrl+`items?barcode=${object.itemBarcode}`, this.getApiHeaders(token))
+    .then((resp) => {
+      object.itemId = resp.data.data[0].id;
+    })
+    .catch((resp) => {
+      logger.error(`Error finding item from url ${apiUrl} with barcode ${object.itemBarcode} when tokenIsSet is ${!!token}`)
+    })
+  },
+  getHoldrequestId(resp, itemId) {
+    let cb = (acc, entry) => {
+      if (entry.record.includes(itemId)) {
+        return entry.id
+      }
+      else {
+        return acc
+      }
+    }
+    return resp.data.entries.reduce(cb, null)
+  },
+  generateCancelApiModel (object, token, apiDataUrl, getHoldrequestId, generateCancelApiModel, getApiHeaders, page = 0) {
     const {
       id,
-      jobId = null,
+      patronId,
+      itemId,
       patronBarcode,
       itemBarcode,
-      owningInstitutionId = null,
-      desiredDateDue = null
+      holdRequestId = null
     } = object;
 
-    return {
-      cancelRequestId: id,
-      jobId,
-      patronBarcode,
-      itemBarcode,
-      owningInstitutionId,
-      desiredDateDue
-    };
+    return new Promise((resolve, reject) => {
+      axios.get(apiDataUrl + `patrons/${patronId}/holds?offset=${page}&limit=50`, getApiHeaders(token))
+      .then((resp) => {
+        let holdRequestIdGotten = getHoldrequestId(resp, itemId)
+        if (holdRequestIdGotten) {
+          object.holdRequestId = holdRequestIdGotten
+          resolve()
+        }
+        else {
+          generateCancelApiModel(object, token, apiDataUrl, getHoldrequestId, generateCancelApiModel, getApiHeaders, page + 50)
+          .then(() => resolve())
+        }
+      })
+      .catch(resp => {
+        if (resp.response && resp.response.statusText) {
+        }
+        else {
+          console.log(resp)
+        }
+      })
+    });
   },
-  generateCheckinApiModel (object) {
-    const {
-      id,
-      jobId = null,
-      itemBarcode,
-      owningInstitutionId = null
-    } = object;
 
-    return {
-      cancelRequestId: id,
-      jobId,
-      itemBarcode,
-      owningInstitutionId
-    };
-  },
   generateErrorResponseObject (obj) {
     const responseObject = obj || {};
     const errorObject = {};
@@ -117,7 +145,6 @@ const ApiHelper = {
         debugInfo
       }
     } = responseObject;
-
     return Object.assign({}, dataResponse, { statusCode: statusCode }, { debugInfo: debugInfo });
   },
   handleApiErrors (errorObj, serviceType, item, callback) {
@@ -187,12 +214,15 @@ const ApiHelper = {
       )
     );
   },
-  handleCancelItemPostRequests (items, serviceType, apiUrl, token) {
+  handleCancelItemsDeleteRequests (items, sierraToken) {
+    console.log(228, items)
     if (!items) {
       return Promise.reject(new CancelRequestConsumerError(
         'the items array parameter is undefined'
       ));
     }
+
+    console.log(241)
 
     if (Array.isArray(items) === false) {
       return Promise.reject(new CancelRequestConsumerError(
@@ -200,45 +230,33 @@ const ApiHelper = {
       ));
     }
 
+    console.log(247)
+
     if (items.length === 0) {
       return Promise.reject(new CancelRequestConsumerError(
         'the items array parameter is empty'
       ));
     }
 
-    if (!serviceType || typeof serviceType !== 'string' || serviceType.trim() === '') {
-      return Promise.reject(new CancelRequestConsumerError(
-        'the serviceType string parameter is not defined or empty'
-      ));
-    }
+    console.log(253)
 
-    if (!apiUrl || typeof apiUrl !== 'string' || apiUrl.trim() === '') {
-      return Promise.reject(new CancelRequestConsumerError(
-        'the apiUrl string parameter is not defined or empty'
-      ));
-    }
-
-    if (!token || typeof token !== 'string' || token.trim() === '') {
+    if (!sierraToken || typeof sierraToken !== 'string' || sierraToken.trim() === '') {
+      console.log(260)
       return Promise.reject(new CancelRequestConsumerError(
         'the token string parameter is not defined or empty'
       ));
     }
 
-    if (serviceType === 'checkin-service') {
-      return this.handleBatchAsyncPostRequests(
-        items,
-        ApiHelper.postCheckInItem.bind(this, apiUrl, token, this.handleApiErrors)
-      );
-    }
+    console.log(259, this.handleBatchAsyncPostRequests, this.deleteItem)
 
-    if (serviceType === 'checkout-service') {
-      return this.handleBatchAsyncPostRequests(
-        items,
-        ApiHelper.postCheckOutItem.bind(this, apiUrl, token, this.handleApiErrors)
-      );
-    }
+    return this.handleBatchAsyncPostRequests(
+      items,
+      this.deleteItem.bind(this, sierraToken, this.handleApiErrors)
+    )
+
   },
   handleBatchAsyncPostRequests (items, processingFn) {
+    console.log(266, items, processingFn)
     return new Promise((resolve, reject) => {
       return async.mapSeries(
         items,
@@ -248,75 +266,32 @@ const ApiHelper = {
       );
     });
   },
-  postCheckOutItem (apiUrl, token, errorHandlerFn, item, callback) {
-    if (item && typeof item === 'object' && item.id) {
-      // initialize the boolean flag to false until a successful post updates to true
-      item.checkoutProccessed = false;
-
-      if (typeof item.patronBarcode === 'string' && item.patronBarcode.trim() !== '' && typeof item.itemBarcode === 'string' && item.itemBarcode.trim() !== '') {
-        logger.info(`Posting Cancel Request Record (${item.id}) to checkout-service`);
-
-        return axios.post(apiUrl, this.generateCheckoutApiModel(item), this.getApiHeaders(token))
-        .then(result => {
-          let proccessedItem = item;
-          proccessedItem.checkoutApiResponse = this.generateSuccessfulResponseObject(result);
-
-          if (this.isItemPostSuccessful(result, 'success')) {
-            logger.info(`Successfully posted Cancel Request Record (${item.id}) to checkout-service; assigned response to record`);
-            proccessedItem = Object.assign(proccessedItem, { checkoutProccessed: true }, { success: true });
-          }
-
-          return callback(null, proccessedItem);
-        })
-        .catch(error => {
-          const errorResponse = this.generateErrorResponseObject(error);
-          // Assign the error clean error object to the item
-          item.error = errorResponse;
-          // Handle retries or fatal errors by error status code
-          return errorHandlerFn(errorResponse, 'checkout-service', item, callback);
-        });
-      }
-
-      // Skip over item since patronBarcode and itemBarcode are not defined
-      logger.warning(`Unable to sent POST request for Cancel Request Record (${item.id}); patronBarcode or itemBarcode are not defined`, { cancelRequestId: item.id });
-      return callback(null, item);
-    }
-
-    // Item is not defined, skip to the next item and async callback will filter undefined elements
-    logger.warning(`Unable to sent POST request for Cancel Request Record; the item object is not defined`);
-    return callback(null);
-  },
-  postCheckInItem (apiUrl, token, errorHandlerFn, item, callback) {
-    // initialize the boolean flag to false until a successful post updates to true
-    item.checkinProccessed = false;
-
-    if (item.checkoutProccessed === true) {
-      logger.info(`Posting Cancel Request Record (${item.id}) to checkin-service`);
-
-      return axios.post(apiUrl, this.generateCheckinApiModel(item), this.getApiHeaders(token))
+  deleteItem (sierraToken, errorHandlerFn, item, callback) {
+    console.log(270, sierraToken, errorHandlerFn, item, item.holdRequestId, callback)
+    if (item.holdRequestId) {
+      logger.info(`Deleting ${item.holdRequestId}`);
+      console.log('deleting', 289)
+      return axios.delete(item.holdRequestId, this.getApiHeaders(sierraToken))
       .then(result => {
-        let proccessedItem = item;
-        proccessedItem.checkinApiResponse = this.generateSuccessfulResponseObject(result);
-
-        if (this.isItemPostSuccessful(result, 'success')) {
-          logger.info(`Successfully posted Cancel Request Record (${item.id}) to checkin-service; assigned response to record`);
-          proccessedItem = Object.assign(proccessedItem, { checkinProccessed: true }, { success: true });
+        let processedItem = item;
+        processedItem.cancelApiResponse = this.generateSuccessfulResponseObject(result);
+        if (this.isItemPostSuccessful(result)) {
+          processedItem.deleted = true;
+          logger.info(`Successfully cancelled using ${item.holdRequestId}`)
+          console.log(`Successfully cancelled using ${item.holdRequestId}`)
         }
 
-        return callback(null, proccessedItem);
+        return callback(null, processedItem)
       })
       .catch(error => {
         const errorResponse = this.generateErrorResponseObject(error);
-        // Assign the error clean error object to the item
         item.error = errorResponse;
-        // Handle retries or fatal errors by error status code
-        return errorHandlerFn(errorResponse, 'checkin-service', item, callback);
+        return errorHandlerFn(errorResponse, 'delete', item, callback);
       });
     }
 
-    // Skip over item since itemBarcode is not defined and checkoutProccessed is false
-    logger.info(`Unable to sent POST request to checkin-service for Cancel Request Record (${item.id}); checkoutProccessed is false which indicates this item was not checked out`);
-    return callback(null, item);
+    logger.warning(`Unable to send delete request for item with missing holdRequestId. Available information: ${JSON.stringify(item)}`);
+    return callback(null)
   }
 };
 
