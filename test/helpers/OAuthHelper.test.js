@@ -3,7 +3,7 @@ import axios from 'axios';
 import MockAdapter from 'axios-mock-adapter';
 import chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
-import { getOauthConfig, fetchAccessToken, handleAuthentication } from '../../src/helpers/OAuthHelper';
+import { getOauthConfig, fetchAccessToken, fetchSierraToken, handleAuthentication } from '../../src/helpers/OAuthHelper';
 import CancelRequestConsumerError from '../../src/helpers/ErrorHelper';
 const expect = chai.expect;
 chai.should();
@@ -134,6 +134,60 @@ describe('CancelRequestConsumer Lambda: OAuthHelper Factory', () => {
       mock.onPost().reply(500);
 
       const response = fetchAccessToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope');
+      return response.should.be.rejected.and.should.eventually.have.property('statusCode', 500);
+    });
+  });
+
+  describe('fetchSierraToken(authUrl, clientId, clientSecret, scope, grantType)', () => {
+    it('should reject the Promise if the authUrl string parameter is NULL', () => {
+      const result = fetchSierraToken(null, 'clientId', 'clientSecret', 'scope', 'customGrantType');
+      return result.should.be.rejectedWith(CancelRequestConsumerError, 'fetchSierraToken: the authUrl function parameter is not defined or invalid; must be of type string and not empty');
+    });
+
+    it('should reject the Promise if the authUrl string parameter is NOT a string', () => {
+      const result = fetchSierraToken({}, 'clientId', 'clientSecret', 'scope', 'customGrantType');
+      return result.should.be.rejectedWith(CancelRequestConsumerError, 'fetchSierraToken: the authUrl function parameter is not defined or invalid; must be of type string and not empty');
+    });
+
+    it('should reject the Promise if the authUrl string parameter is EMPTY', () => {
+      const result = fetchSierraToken(' ', 'clientId', 'clientSecret', 'scope', 'customGrantType');
+      return result.should.be.rejectedWith(CancelRequestConsumerError, 'fetchSierraToken: the authUrl function parameter is not defined or invalid; must be of type string and not empty');
+    });
+
+    it('should resolve the Promise with an access_token when the Auth URL is valid', () => {
+      mock.onPost().reply(
+        200,
+        {
+          access_token: 'validaccesstoken'
+        }
+      );
+
+      const response = fetchSierraToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope');
+      return response.should.be.fulfilled.and.should.become('validaccesstoken');
+    });
+
+    it('should reject the Promise with an error response when response does not contain an access_token key', () => {
+      mock.onPost().reply(
+        200,
+        {}
+      );
+
+      const response = fetchSierraToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope');
+
+      return response.should.be.rejectedWith(CancelRequestConsumerError, 'fetchSierraToken: the AuthResponse object contained an undefined access_token property');
+    });
+
+    it('should reject the Promise with an error response when the Auth server returns a 404', () => {
+      mock.onPost().reply(404);
+
+      const response = fetchSierraToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope');
+      return response.should.be.rejected.and.should.eventually.have.property('statusCode', 404);
+    });
+
+    it('should reject the Promise with an error response when the Auth server returns a 500 (Internal Server Error)', () => {
+      mock.onPost().reply(500);
+
+      const response = fetchSierraToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope');
       return response.should.be.rejected.and.should.eventually.have.property('statusCode', 500);
     });
   });

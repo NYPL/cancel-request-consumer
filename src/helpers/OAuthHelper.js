@@ -124,7 +124,7 @@ const fetchSierraToken = function (authUrl, clientId, clientSecret, scope, grant
     if (result.data && result.data.access_token) {
       return Promise.resolve(result.data.access_token);
     }
-
+    console.log('here i am')
     return Promise.reject(
       new CancelRequestConsumerError(
         'fetchSierraToken: the AuthResponse object contained an undefined access_token property',
@@ -171,6 +171,25 @@ const fetchSierraToken = function (authUrl, clientId, clientSecret, scope, grant
         )
       );
     }
+
+    if (error.type === 'invalid-access-token-response') {
+      errorMessage += `; ${error.message}`;
+
+      logger.error(errorMessage, { debugInfo: error });
+      return Promise.reject(error);
+    }
+
+    errorMessage += '; an fatal server error occurred from the OAuth Service';
+    logger.error(errorMessage, { debugInfo: error });
+    return Promise.reject(
+      new CancelRequestConsumerError(
+        errorMessage,
+        {
+          type: 'oauth-service-error',
+          debugInfo: error
+        }
+      )
+    );
   });
 }
 
