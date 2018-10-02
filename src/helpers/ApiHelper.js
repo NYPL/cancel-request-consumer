@@ -20,7 +20,12 @@ const ApiHelper = {
   findPatronIdFromBarcode(object, token, apiUrl) {
     return axios.get(apiUrl + `patrons/find?varFieldTag=b&varFieldContent=${object.patronBarcode}`, this.getApiHeaders(token))
     .then((resp) => {
-      object.patronId = resp.data.id;
+      if (resp.data && resp.data.id) {
+        object.patronId = resp.data.id;
+      }
+      else {
+        logger.error(`No patron id returned from url ${apiUrl} with barcode ${object.patronBarcode} when tokenIsSet is ${!!token}`)
+      }
     })
     .catch(() => {
       logger.error(`Error finding patron from url ${apiUrl} with barcode ${object.patronBarcode} when tokenIsSet is ${!!token}`)
@@ -29,7 +34,12 @@ const ApiHelper = {
   findItemIdFromBarcode(object, token, apiUrl) {
     return axios.get(apiUrl+`items?barcode=${object.itemBarcode}`, this.getApiHeaders(token))
     .then((resp) => {
-      object.itemId = resp.data.data[0].id;
+      if (resp.data && resp.data.data && resp.data.data[0] && resp.data.data[0].id){
+        object.itemId = resp.data.data[0].id;
+      }
+      else {
+        logger.error(`Error finding item from url ${apiUrl} with barcode ${object.itemBarcode} when tokenIsSet is ${!!token}`)
+      }
     })
     .catch((resp) => {
       logger.error(`Error finding item from url ${apiUrl} with barcode ${object.itemBarcode} when tokenIsSet is ${!!token}`)
