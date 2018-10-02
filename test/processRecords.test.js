@@ -25,9 +25,9 @@ describe('processRecords successful call', () => {
 
   let records = [{}, {}, {}]
   it('should call findPatronIdFromBarcode', () => {
-    let findItemIdFromBarcodeStub = sinon.stub(ApiHelper, 'findItemIdFromBarcode').callsFake(() => {return Promise.resolve()})
-    let findPatronIdFromBarcodeStub = sinon.stub(ApiHelper, 'findPatronIdFromBarcode').callsFake(() => {return Promise.resolve()})
-    let generateCancelApiModelStub = sinon.stub(ApiHelper, 'generateCancelApiModel').callsFake(() => {return Promise.resolve()})
+    let findItemIdFromBarcodeStub = sinon.stub(ApiHelper, 'findItemIdFromBarcode').callsFake(() => { return Promise.resolve() })
+    let findPatronIdFromBarcodeStub = sinon.stub(ApiHelper, 'findPatronIdFromBarcode').callsFake(() => { return Promise.resolve() })
+    let generateCancelApiModelStub = sinon.stub(ApiHelper, 'generateCancelApiModel').callsFake(() => { return Promise.resolve() })
     let opts = {
       oAuthProviderUrl: null,
       oAuthClientId: null,
@@ -54,9 +54,9 @@ describe('processRecords successful call', () => {
     return promise.should.eventually.equal(true)
   });
   it('should call findItemIdFromBarcode', () => {
-    let findItemIdFromBarcodeStub = sinon.stub(ApiHelper, 'findItemIdFromBarcode').callsFake(() => {return Promise.resolve()})
-    let findPatronIdFromBarcodeStub = sinon.stub(ApiHelper, 'findPatronIdFromBarcode').callsFake(() => {return Promise.resolve()})
-    let generateCancelApiModelStub = sinon.stub(ApiHelper, 'generateCancelApiModel').callsFake(() => {return Promise.resolve()})
+    let findItemIdFromBarcodeStub = sinon.stub(ApiHelper, 'findItemIdFromBarcode').callsFake(() => { return Promise.resolve() })
+    let findPatronIdFromBarcodeStub = sinon.stub(ApiHelper, 'findPatronIdFromBarcode').callsFake(() => { return Promise.resolve() })
+    let generateCancelApiModelStub = sinon.stub(ApiHelper, 'generateCancelApiModel').callsFake(() => { return Promise.resolve() })
     let opts = {
       oAuthProviderUrl: null,
       oAuthClientId: null,
@@ -83,9 +83,9 @@ describe('processRecords successful call', () => {
     return promise.should.eventually.equal(true)
   });
   it('should call generateCancelApiModel', () => {
-    let findItemIdFromBarcodeStub = sinon.stub(ApiHelper, 'findItemIdFromBarcode').callsFake(() => {return Promise.resolve()})
-    let findPatronIdFromBarcodeStub = sinon.stub(ApiHelper, 'findPatronIdFromBarcode').callsFake(() => {return Promise.resolve()})
-    let generateCancelApiModelStub = sinon.stub(ApiHelper, 'generateCancelApiModel').callsFake(() => {return Promise.resolve()})
+    let findItemIdFromBarcodeStub = sinon.stub(ApiHelper, 'findItemIdFromBarcode').callsFake(() => { return Promise.resolve() })
+    let findPatronIdFromBarcodeStub = sinon.stub(ApiHelper, 'findPatronIdFromBarcode').callsFake(() => { return Promise.resolve() })
+    let generateCancelApiModelStub = sinon.stub(ApiHelper, 'generateCancelApiModel').callsFake(() => { return Promise.resolve() })
     let opts = {
       oAuthProviderUrl: null,
       oAuthClientId: null,
@@ -116,9 +116,9 @@ describe('processRecords successful call', () => {
 describe('processedRecords unsuccessful call', () => {
   let records = [{}, {}, {}]
   it('should return an error', () => {
-    let findItemIdFromBarcodeStub = sinon.stub(ApiHelper, 'findItemIdFromBarcode').callsFake(() => {return Promise.reject()})
-    let findPatronIdFromBarcodeStub = sinon.stub(ApiHelper, 'findPatronIdFromBarcode').callsFake(() => {return Promise.resolve()})
-    let generateCancelApiModelStub = sinon.stub(ApiHelper, 'generateCancelApiModel').callsFake(() => {return Promise.resolve()})
+    let findItemIdFromBarcodeStub = sinon.stub(ApiHelper, 'findItemIdFromBarcode').callsFake(() => { return Promise.reject() })
+    let findPatronIdFromBarcodeStub = sinon.stub(ApiHelper, 'findPatronIdFromBarcode').callsFake(() => { return Promise.resolve() })
+    let generateCancelApiModelStub = sinon.stub(ApiHelper, 'generateCancelApiModel').callsFake(() => { return Promise.resolve() })
     let opts = {
       oAuthProviderUrl: null,
       oAuthClientId: null,

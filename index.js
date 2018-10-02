@@ -28,15 +28,15 @@ exports.processRecords = async function (records, opts, token, sierraToken) {
       sierraSecret
     } = opts;
     let record;
-    for(let i = 0; i < records.length; i++) {
+    for (let i = 0; i < records.length; i++) {
       record = records[i];
       await ApiHelper.findPatronIdFromBarcode(record, sierraToken, sierraUrl);
       await ApiHelper.findItemIdFromBarcode(record, token, nyplDataApiBaseUrl);
       await ApiHelper.generateCancelApiModel(record, sierraToken, sierraUrl, ApiHelper.getHoldrequestId, ApiHelper.generateCancelApiModel, ApiHelper.getApiHeaders)
     }
     return Promise.resolve(records);
-  } catch(e) {
-    logger.error("Error processing records");
+  } catch (e) {
+    logger.error('Error processing records');
     return Promise.reject(e);
   }
 },
@@ -70,7 +70,6 @@ exports.handleKinesisAsyncProcessing = async function (records, opts, context, c
     const processedRecords = await exports.processRecords(unprocessedRecords, opts, tokenResponse.token, sierraTokenResponse.token);
 
     [ tokenResponse, sierraTokenResponse].forEach((response) => {
-
       if (response.tokenType === 'new-token') {
         logger.info(`Obtained a new access token from ${response.tokenName}`);
         Cache.setToken(response.token, response.tokenName);
@@ -79,8 +78,8 @@ exports.handleKinesisAsyncProcessing = async function (records, opts, context, c
       }
     })
 
-    let currentSierraToken  = Cache.getSierraToken()
-    const processedCancelledItems = await ApiHelper.handleCancelItemsDeleteRequests(processedRecords, currentSierraToken );
+    let currentSierraToken = Cache.getSierraToken()
+    const processedCancelledItems = await ApiHelper.handleCancelItemsDeleteRequests(processedRecords, currentSierraToken);
     const proccessedItemsToStream = await postItemsToStream(processedCancelledItems, cancelRequestResultStreamName, cancelRequestResultSchemaName, streamsClient);
 
     if (!proccessedItemsToStream || !Array.isArray(proccessedItemsToStream)) {

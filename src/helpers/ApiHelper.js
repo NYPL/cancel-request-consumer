@@ -17,13 +17,12 @@ const ApiHelper = {
   isItemPostSuccessful (responseObject) {
     return responseObject && responseObject.status === 204
   },
-  findPatronIdFromBarcode(object, token, apiUrl) {
+  findPatronIdFromBarcode (object, token, apiUrl) {
     return axios.get(apiUrl + `patrons/find?varFieldTag=b&varFieldContent=${object.patronBarcode}`, this.getApiHeaders(token))
     .then((resp) => {
       if (resp.data && resp.data.id) {
         object.patronId = resp.data.id;
-      }
-      else {
+      } else {
         logger.error(`No patron id returned from url ${apiUrl} with barcode ${object.patronBarcode} when tokenIsSet is ${!!token}`)
       }
     })
@@ -31,13 +30,12 @@ const ApiHelper = {
       logger.error(`Error finding patron from url ${apiUrl} with barcode ${object.patronBarcode} when tokenIsSet is ${!!token}`)
     })
   },
-  findItemIdFromBarcode(object, token, apiUrl) {
-    return axios.get(apiUrl+`items?barcode=${object.itemBarcode}`, this.getApiHeaders(token))
+  findItemIdFromBarcode (object, token, apiUrl) {
+    return axios.get(apiUrl + `items?barcode=${object.itemBarcode}`, this.getApiHeaders(token))
     .then((resp) => {
-      if (resp.data && resp.data.data && resp.data.data[0] && resp.data.data[0].id){
+      if (resp.data && resp.data.data && resp.data.data[0] && resp.data.data[0].id) {
         object.itemId = resp.data.data[0].id;
-      }
-      else {
+      } else {
         logger.error(`Error finding item from url ${apiUrl} with barcode ${object.itemBarcode} when tokenIsSet is ${!!token}`)
       }
     })
@@ -45,14 +43,13 @@ const ApiHelper = {
       logger.error(`Error finding item from url ${apiUrl} with barcode ${object.itemBarcode} when tokenIsSet is ${!!token}`)
     })
   },
-  getHoldrequestId(resp, itemId) {
+  getHoldrequestId (resp, itemId) {
     let cb = (acc, entry) => {
-      let splitPath = entry.record.split("/")
-      let suffix = splitPath[splitPath.length-1]
+      let splitPath = entry.record.split('/')
+      let suffix = splitPath[splitPath.length - 1]
       if (suffix.includes(itemId)) {
         return entry.id
-      }
-      else {
+      } else {
         return acc
       }
     }
@@ -75,12 +72,10 @@ const ApiHelper = {
         if (holdRequestIdGotten) {
           object.holdRequestId = holdRequestIdGotten
           resolve()
-        }
-        else if (resp.data && resp.data.entries && resp.data.entries.length !== 0) {
+        } else if (resp.data && resp.data.entries && resp.data.entries.length !== 0) {
           generateCancelApiModel(object, token, apiDataUrl, getHoldrequestId, generateCancelApiModel, getApiHeaders, page + 50)
           .then(() => resolve())
-        }
-        else {
+        } else {
           resolve()
         }
       })
@@ -88,8 +83,7 @@ const ApiHelper = {
         if (resp.response && resp.response.statusText) {
           logger.error(resp.response.statusText)
           reject(new CancelRequestConsumerError(resp.response.statusText, {response: resp}))
-        }
-        else {
+        } else {
           logger.error('problem generating CancelApiModel')
           reject(new CancelRequestConsumerError('problem generating CancelApiModel', {response: resp}))
         }
@@ -256,12 +250,10 @@ const ApiHelper = {
       ));
     }
 
-
     return this.handleBatchAsyncPostRequests(
       items,
       this.deleteItem.bind(this, sierraToken, this.handleApiErrors)
     )
-
   },
   handleBatchAsyncPostRequests (items, processingFn) {
     return new Promise((resolve, reject) => {

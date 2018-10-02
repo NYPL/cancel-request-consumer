@@ -20,8 +20,8 @@ const getOauthConfig = function (clientId, clientSecret, scope, grantType = 'cli
   return {
     client_id: clientId,
     client_secret: clientSecret,
-    grant_type: grantType,
-    //scope
+    grant_type: grantType
+    // scope
   };
 }
 
@@ -107,7 +107,7 @@ const fetchAccessToken = function (oauthUrl, clientId, clientSecret, scope, gran
 }
 
 const getBasicAuthHeaders = function (clientId, clientSecret) {
-  return {"auth" : {"username" : clientId, "password" : clientSecret } }
+  return {'auth': {'username': clientId, 'password': clientSecret } }
 }
 
 const fetchSierraToken = function (authUrl, clientId, clientSecret, scope, grantType) {
@@ -117,9 +117,9 @@ const fetchSierraToken = function (authUrl, clientId, clientSecret, scope, grant
     );
   }
 
-  //const oAuthConfig = getOauthConfig(clientId, clientSecret, scope, grantType);
+  // const oAuthConfig = getOauthConfig(clientId, clientSecret, scope, grantType);
   const headers = getBasicAuthHeaders(clientId, clientSecret);
-  return axios.post(authUrl + "token", {}, headers)
+  return axios.post(authUrl + 'token', {}, headers)
   .then(result => {
     if (result.data && result.data.access_token) {
       return Promise.resolve(result.data.access_token);
