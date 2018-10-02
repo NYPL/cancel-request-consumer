@@ -15,6 +15,7 @@ const ApiHelper = {
     };
   },
   isItemPostSuccessful (responseObject) {
+    //console.log(18, responseObject)
     return responseObject && responseObject.status === 204
   },
   findPatronIdFromBarcode(object, token, apiUrl) {
@@ -37,7 +38,9 @@ const ApiHelper = {
   },
   getHoldrequestId(resp, itemId) {
     let cb = (acc, entry) => {
-      if (entry.record.includes(itemId)) {
+      let splitPath = entry.record.split("/")
+      let suffix = splitPath[splitPath.length-1]
+      if (suffix.includes(itemId)) {
         return entry.id
       }
       else {
@@ -64,16 +67,22 @@ const ApiHelper = {
           object.holdRequestId = holdRequestIdGotten
           resolve()
         }
-        else {
+        else if (resp.data && resp.data.entries && resp.data.entries.length !== 0) {
           generateCancelApiModel(object, token, apiDataUrl, getHoldrequestId, generateCancelApiModel, getApiHeaders, page + 50)
           .then(() => resolve())
+        }
+        else {
+          resolve()
         }
       })
       .catch(resp => {
         if (resp.response && resp.response.statusText) {
+          logger.error(resp.response.statusText)
+          reject(new CancelRequestConsumerError(resp.response.statusText, {response: resp}))
         }
         else {
-          console.log(resp)
+          logger.error('problem generating CancelApiModel')
+          reject(new CancelRequestConsumerError('problem generating CancelApiModel', {response.resp}))
         }
       })
     });
@@ -145,6 +154,7 @@ const ApiHelper = {
         debugInfo
       }
     } = responseObject;
+    //console.log(149, responseObject)
     return Object.assign({}, dataResponse, { statusCode: statusCode }, { debugInfo: debugInfo });
   },
   handleApiErrors (errorObj, serviceType, item, callback) {
@@ -256,6 +266,7 @@ const ApiHelper = {
     });
   },
   deleteItem (sierraToken, errorHandlerFn, item, callback) {
+    //console.log(259)
     if (item.holdRequestId) {
       logger.info(`Deleting ${item.holdRequestId}`);
       return axios.delete(item.holdRequestId, this.getApiHeaders(sierraToken))
@@ -270,6 +281,7 @@ const ApiHelper = {
         return callback(null, processedItem)
       })
       .catch(error => {
+        //console.log(275)
         const errorResponse = this.generateErrorResponseObject(error);
         item.error = errorResponse;
         return errorHandlerFn(errorResponse, 'delete', item, callback);
