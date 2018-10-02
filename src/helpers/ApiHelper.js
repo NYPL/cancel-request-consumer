@@ -20,7 +20,9 @@ const ApiHelper = {
   findPatronIdFromBarcode(object, token, apiUrl) {
     return axios.get(apiUrl + `patrons/find?varFieldTag=b&varFieldContent=${object.patronBarcode}`, this.getApiHeaders(token))
     .then((resp) => {
+      console.log(JSON.stringify(resp), 23)
       if (resp.data && resp.data.id) {
+        console.log(25)
         object.patronId = resp.data.id;
       }
       else {
@@ -46,6 +48,7 @@ const ApiHelper = {
     })
   },
   getHoldrequestId(resp, itemId) {
+    console.log(resp.data.entries, itemId, 51)
     let cb = (acc, entry) => {
       let splitPath = entry.record.split("/")
       let suffix = splitPath[splitPath.length-1]

@@ -7,6 +7,7 @@ import chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import ApiHelper from '../../src/helpers/ApiHelper';
 import CancelRequestConsumerError from '../../src/helpers/ErrorHelper';
+import logger from '../../src/helpers/Logger'
 const expect = chai.expect;
 chai.use(sinonChai);
 chai.use(chaiAsPromised);
@@ -508,6 +509,188 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
   });
 });
 
+describe('findPatronIdFromBarcode', () => {
+  it('should update the patronId property for a successful call', () => {
+    mock.onGet().reply(200, {id: 11111})
+    let object = {}
+    let promise = ApiHelper.findPatronIdFromBarcode(object, null, null).then(() => object)
+    return promise.should.eventually.have.property('patronId', 11111)
+  });
+  it('should log an error for an unsuccessful call', () => {
+    let loggerStub = sinon.stub(logger, 'error')
+    let object = {}
+    mock.onGet().reply(200, {})
+    let promise = ApiHelper.findPatronIdFromBarcode(object, null, null).then(() => {
+      let val  = loggerStub.called
+      loggerStub.restore()
+      return val
+    })
+    return promise.should.eventually.equal(true)
+  });
+  it('should not update patronId property for an unsuccessful call', () => {
+    let object = {}
+    mock.onGet().reply(200, {})
+    let promise = ApiHelper.findPatronIdFromBarcode(object, null, null).then(() => object)
+    return promise.should.eventually.not.have.property('patronId')
+  });
+  it('should not update patronId in case of an error', () => {
+    let object = {}
+    mock.onGet().reply(401, {id: 11111})
+    let promise = ApiHelper.findPatronIdFromBarcode(object, null, null).then(() => object)
+    return promise.should.eventually.not.have.property('patronId')
+  });
+  it('should log an error in case of an error', () => {
+    let loggerStub = sinon.stub(logger, 'error')
+    let object = {}
+    mock.onGet().reply(401, {id: 11111})
+    let promise = ApiHelper.findPatronIdFromBarcode(object, null, null).then(() => {
+      let val  = loggerStub.called
+      loggerStub.restore()
+      return val
+    })
+    return promise.should.eventually.equal(true)
+  })
+});
+
+describe('findItemIdFromBarcode', () => {
+  it('should update the itemId property for a successful call', () => {
+    mock.onGet().reply(200, {data:[{id: 11111}]})
+    let object = {}
+    let promise = ApiHelper.findItemIdFromBarcode(object, null, null).then(() => object)
+    return promise.should.eventually.have.property('itemId', 11111)
+  });
+  it('should log an error for an unsuccessful call', () => {
+    let loggerStub = sinon.stub(logger, 'error')
+    let object = {}
+    mock.onGet().reply(200, {})
+    let promise = ApiHelper.findItemIdFromBarcode(object, null, null).then(() => {
+      let val  = loggerStub.called
+      loggerStub.restore()
+      return val
+    })
+    return promise.should.eventually.equal(true)
+  });
+  it('should not update patronId property for an unsuccessful call', () => {
+    let object = {}
+    mock.onGet().reply(200, {})
+    let promise = ApiHelper.findItemIdFromBarcode(object, null, null).then(() => object)
+    return promise.should.eventually.not.have.property('patronId')
+  });
+  it('should not update patronId in case of an error', () => {
+    let object = {}
+    mock.onGet().reply(401, {data:[{id: 11111}]})
+    let promise = ApiHelper.findItemIdFromBarcode(object, null, null).then(() => object)
+    return promise.should.eventually.not.have.property('itemId')
+  });
+  it('should log an error in case of an error', () => {
+    let loggerStub = sinon.stub(logger, 'error')
+    let object = {}
+    mock.onGet().reply(401, {data:[{id: 11111}]})
+    let promise = ApiHelper.findItemIdFromBarcode(object, null, null).then(() => {
+      let val  = loggerStub.called
+      loggerStub.restore()
+      return val
+    })
+    return promise.should.eventually.equal(true)
+  })
+});
+
+describe('generateCancelApiModel', () => {
+  it('should update the holdRequestId in case of a successful request', () => {
+    var count = 0;
+    let entries = () => {
+      if (count < 10) {
+        count += 1
+        return [{record:'https://fakeapiurl.org/11111' , id: 'aaaa'}]
+      }
+      else if (count === 10) {
+        return [{record:'https://fakeapiurl.org/22222' , id: 'bbbbb'}]
+        count += 1
+      }
+      else {
+        return []
+      }
+    }
+    let replyMethod = () => {
+      return [200, {
+          entries: entries(),
+          statusCode: 200,
+          debugInfo: ''
+        }
+      ]
+    }
+    mock.onGet().reply(replyMethod)
+    let object = {
+      id: null,
+      patronId: null,
+      itemId: 22222,
+      patronBarcode: null,
+      itemBarcode: null,
+      holdRequestId: null
+    }
+    let promise = ApiHelper
+      .generateCancelApiModel(object, null, 'https://fake.org', ApiHelper.getHoldrequestId, ApiHelper.generateCancelApiModel, ApiHelper.getApiHeaders)
+      .then(() => object)
+    return promise.should.eventually.have.property('holdRequestId', 'bbbbb')
+  });
+  it('should not update the holdRequestId in case of an unsuccessful request', () => {
+    var count = 0;
+    let entries = () => {
+      if (count < 10) {
+        count += 1
+        return [{record:'https://fakeapiurl.org/11111' , id: 'aaaa'}]
+      }
+      else if (count === 10) {
+        return []
+        count += 1
+      }
+      else {
+        return []
+      }
+    }
+    let replyMethod = () => {
+      return [200, {
+          entries: entries(),
+          statusCode: 200,
+          debugInfo: ''
+        }
+      ]
+    }
+    mock.onGet().reply(replyMethod)
+    let object = {
+      id: null,
+      patronId: null,
+      itemId: 22222,
+      patronBarcode: null,
+      itemBarcode: null,
+      holdRequestId: null
+    }
+    let promise = ApiHelper
+      .generateCancelApiModel(object, null, 'https://fake.org', ApiHelper.getHoldrequestId, ApiHelper.generateCancelApiModel, ApiHelper.getApiHeaders)
+      .then(() => object)
+    return promise.should.eventually.have.property('holdRequestId', null)
+  });
+  it('should log an error in case of an error', () => {
+    mock.onGet().reply(401)
+    let object = {
+      id: null,
+      patronId: null,
+      itemId: 22222,
+      patronBarcode: null,
+      itemBarcode: null,
+      holdRequestId: null
+    }
+    let loggerStub =  sinon.stub(logger, 'error')
+    let promise = ApiHelper
+      .generateCancelApiModel(object, null, 'https://fake.org', ApiHelper.getHoldrequestId, ApiHelper.generateCancelApiModel, ApiHelper.getApiHeaders)
+      .catch(() => {
+        let val= loggerStub.called
+        loggerStub.restore()
+        return val
+      })
+    return promise.should.eventually.equal(true)
+  })
+})
 
 
 });
