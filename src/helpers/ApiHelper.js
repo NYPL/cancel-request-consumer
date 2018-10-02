@@ -81,7 +81,7 @@ const ApiHelper = {
         }
         else {
           logger.error('problem generating CancelApiModel')
-          reject(new CancelRequestConsumerError('problem generating CancelApiModel', {response.resp}))
+          reject(new CancelRequestConsumerError('problem generating CancelApiModel', {response: resp}))
         }
       })
     });
