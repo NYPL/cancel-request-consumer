@@ -15,7 +15,6 @@ const ApiHelper = {
     };
   },
   isItemPostSuccessful (responseObject) {
-    //console.log(18, responseObject)
     return responseObject && responseObject.status === 204
   },
   findPatronIdFromBarcode(object, token, apiUrl) {
@@ -154,7 +153,6 @@ const ApiHelper = {
         debugInfo
       }
     } = responseObject;
-    //console.log(149, responseObject)
     return Object.assign({}, dataResponse, { statusCode: statusCode }, { debugInfo: debugInfo });
   },
   handleApiErrors (errorObj, serviceType, item, callback) {
@@ -266,7 +264,6 @@ const ApiHelper = {
     });
   },
   deleteItem (sierraToken, errorHandlerFn, item, callback) {
-    //console.log(259)
     if (item.holdRequestId) {
       logger.info(`Deleting ${item.holdRequestId}`);
       return axios.delete(item.holdRequestId, this.getApiHeaders(sierraToken))
@@ -281,7 +278,6 @@ const ApiHelper = {
         return callback(null, processedItem)
       })
       .catch(error => {
-        //console.log(275)
         const errorResponse = this.generateErrorResponseObject(error);
         item.error = errorResponse;
         return errorHandlerFn(errorResponse, 'delete', item, callback);

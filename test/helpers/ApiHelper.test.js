@@ -308,4 +308,206 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
     });
   })
 
+  describe('deleteItem', ()=> {
+    it('should update item.deleted to true when it receives a 204 for a valid item', () => {
+      var item = {holdRequestId: 1};
+      mock.onDelete().reply(() => {
+        return [204, {
+          data: {
+            data: '',
+            statusCode: 204,
+            debugInfo: ''
+          }
+        }]
+      }
+      )
+      let promise = Promise.resolve()
+        .then(() => ApiHelper.deleteItem(null, (a,b) => {return null}, item, (a,b) => {return null}))
+        .then(() => item)
+
+      return promise.should.eventually.have.property('deleted', true)
+    });
+
+    it('should not update item.deleted for an invalid item', () => {
+      var item = {};
+      mock.onDelete().reply(() => {
+        return [204, {
+          data: {
+            data: '',
+            statusCode: 204,
+            debugInfo: ''
+          }
+        }]
+      }
+      )
+      let promise = Promise.resolve()
+        .then(() => ApiHelper.deleteItem(null, (a,b) => {return null}, item, (a,b) => {return null}))
+        .then(() => item).catch(() => item)
+
+      return promise.should.eventually.not.have.property('deleted')
+    })
+    it('should call the callback for an invalid item', () => {
+      var item = {};
+      mock.onDelete().reply(() => {
+        return [204, {
+          data: {
+            data: '',
+            statusCode: 204,
+            debugInfo: ''
+          }
+        }]
+      }
+      )
+      let promise = Promise.resolve()
+        .then(() => ApiHelper.deleteItem(null, (a,b) => {return null}, item, (a,b) => {return 'called'}))
+
+      return promise.should.eventually.equal('called')
+    })
+    it('should not update item.deleted for non-204 response', () => {
+      var item = {holdRequestId: 1};
+      mock.onDelete().reply(() => {
+        return [401, {
+          data: {
+            data: '',
+            statusCode: 401,
+            debugInfo: ''
+          }
+        }]
+      }
+      )
+      let promise = Promise.resolve()
+        .then(() => ApiHelper.deleteItem(null, (a,b) => {return null}, item, (a,b) => {return 'called'}))
+        .then(() => item).catch(() => item)
+
+      return promise.should.eventually.not.have.property('deleted')
+    })
+    it('should update item.error for non-204 response', () => {
+      var item = {holdRequestId: 1};
+      mock.onDelete().reply(() => {
+        return [401, {
+          data: {
+            data: '',
+            statusCode: 401,
+            debugInfo: ''
+          }
+        }]
+      }
+      )
+      let promise = Promise.resolve()
+        .then(() => ApiHelper.deleteItem(null, (a,b) => {return null}, item, (a,b) => {return 'called'}))
+        .then(() => item).catch(() => item)
+
+      return promise.should.eventually.have.property('error')
+    })
+    it('should call errorHandlerFn for non-204 response', () => {
+      var item = {holdRequestId: 1};
+      mock.onDelete().reply(() => {
+        return [401, {
+          data: {
+            data: '',
+            statusCode: 401,
+            debugInfo: ''
+          }
+        }]
+      }
+      )
+      let promise = Promise.resolve()
+        .then(() => ApiHelper.deleteItem(null, (a,b) => {return 'errorHandlerFn'}, item, (a,b) => {return 'called'}))
+
+      return promise.should.eventually.equal('errorHandlerFn')
+    })
+  })
+
+  describe('getHoldrequestId', () => {
+    it('should return the id of a hold with the matching itemId', () => {
+      let itemId = 111;
+      let resp = {
+        data: {
+          entries: [
+            {record: 'https://platform.nypl.org/api/v0.1/patrons/424/holds/222', id: 'b'},
+            {record: 'https://platform.nypl.org/api/v0.1/patrons/424/holds/333', id: 'c'},
+            {record: 'https://platform.nypl.org/api/v0.1/patrons/424/holds/111', id: 'a'},
+          ]
+        }
+      }
+      let id = ApiHelper.getHoldrequestId(resp, itemId);
+      return id.should.equal('a')
+    })
+    it('should return null if there is no item with matching itemId', () => {
+      let itemId = 111;
+      let resp = {
+        data: {
+          entries: [
+            {record: 'https://platform.nypl.org/api/v0.1/patrons/424/holds/222', id: 'b'},
+            {record: 'https://platform.nypl.org/api/v0.1/patrons/424/holds/333', id: 'c'}
+          ]
+        }
+      }
+      let id = ApiHelper.getHoldrequestId(resp, itemId);
+      return (id === null).should.equal(true)
+    })
+  });
+
+  describe('handleCancelItemsDeleteRequests(items, sierraToken) function', () => {
+  it('should reject the Promise with an error if the items array parameter is NULL', () => {
+    const result = ApiHelper.handleCancelItemsDeleteRequests(null, 'hgljhgljjlgjg');
+
+    return result.should.be.rejectedWith(CancelRequestConsumerError, /the items array parameter is undefined/);
+  });
+
+  it('should reject the Promise with an error if the items array parameter is UNDEFINED', () => {
+    const result = ApiHelper.handleCancelItemsDeleteRequests(undefined, 'jakjvakawjkfaw');
+
+    return result.should.be.rejectedWith(CancelRequestConsumerError, /the items array parameter is undefined/);
+  });
+
+  it('should reject the Promise with an error if the items array parameter is NOT of type array', () => {
+    const result = ApiHelper.handleCancelItemsDeleteRequests({}, 'ajkflsdjkfahekhawe');
+
+    return result.should.be.rejectedWith(CancelRequestConsumerError, /the items array parameter is not of type array/);
+  });
+
+  it('should reject the Promise with an error if the items array parameter is an EMPTY array', () => {
+    const result = ApiHelper.handleCancelItemsDeleteRequests([], 'tokentokentokentoken');
+
+    return result.should.be.rejectedWith(CancelRequestConsumerError, /the items array parameter is empty/);
+  });
+
+  it('should reject the Promise with an error if the token parameter is NULL', () => {
+    const result = ApiHelper.handleCancelItemsDeleteRequests([{}], null);
+
+    return result.should.be.rejectedWith(CancelRequestConsumerError, /the token string parameter is not defined or empty/);
+  });
+
+  it('should reject the Promise with an error if the token parameter is UNDEFINED', () => {
+    const result = ApiHelper.handleCancelItemsDeleteRequests([{}], undefined);
+
+    return result.should.be.rejectedWith(CancelRequestConsumerError, /the token string parameter is not defined or empty/);
+  });
+
+  it('should reject the Promise with an error if the token parameter is NOT of type string', () => {
+    const result = ApiHelper.handleCancelItemsDeleteRequests([{}], {});
+
+    return result.should.be.rejectedWith(CancelRequestConsumerError, /the token string parameter is not defined or empty/);
+  });
+
+  it('should reject the Promise with an error if the token parameter is an EMPTY string', () => {
+    const result = ApiHelper.handleCancelItemsDeleteRequests([{}], ' ');
+
+    return result.should.be.rejectedWith(CancelRequestConsumerError, /the token string parameter is not defined or empty/);
+  });
+
+  it('should call the handleBatchAsyncPostRequests when given valid inputs', () => {
+    let handleBatchAsyncPostRequestsStub = sinon.stub(ApiHelper, 'handleBatchAsyncPostRequests');
+
+    ApiHelper.handleCancelItemsDeleteRequests([{}], 'token');
+
+    expect(handleBatchAsyncPostRequestsStub).to.be.called;
+
+    handleBatchAsyncPostRequestsStub.restore();
+  });
+});
+
+
+
 });

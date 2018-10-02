@@ -124,7 +124,6 @@ const fetchSierraToken = function (authUrl, clientId, clientSecret, scope, grant
     if (result.data && result.data.access_token) {
       return Promise.resolve(result.data.access_token);
     }
-    console.log('here i am')
     return Promise.reject(
       new CancelRequestConsumerError(
         'fetchSierraToken: the AuthResponse object contained an undefined access_token property',
