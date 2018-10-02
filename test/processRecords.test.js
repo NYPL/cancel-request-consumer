@@ -9,20 +9,8 @@ import ApiHelper from '../src/helpers/ApiHelper';
 chai.should();
 chai.use(sinonChai);
 chai.use(chaiAsPromised);
-const expect = chai.expect;
 
 describe('processRecords successful call', () => {
-  // let record = {};
-  // let mocker = (name) => {
-  //   return () => {return Promise.resolve().then(() => record[name] = 'called')}
-  // }
-  // let findItemIdFromBarcode = ApiHelper.findItemIdFromBarcode
-  // let findPatronIdFromBarcode = ApiHelper.findPatronIdFromBarcode
-  // let generateCancelApiModel = ApiHelper.generateCancelApiModel
-  // ApiHelper.findPatronIdFromBarcode = mocker('findPatronIdFromBarcode')
-  // ApiHelper.findItemIdFromBarcode = mocker('findItemIdFromBarcode')
-  // ApiHelper.generateCancelApiModel = mocker('generateCancelApiModel')
-
   let records = [{}, {}, {}]
   it('should call findPatronIdFromBarcode', () => {
     let findItemIdFromBarcodeStub = sinon.stub(ApiHelper, 'findItemIdFromBarcode').callsFake(() => { return Promise.resolve() })

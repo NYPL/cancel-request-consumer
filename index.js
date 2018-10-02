@@ -13,19 +13,8 @@ const lambdaEnvVarsClient = new LambdaEnvVars();
 exports.processRecords = async function (records, opts, token, sierraToken) {
   try {
     const {
-      oAuthProviderUrl,
-      oAuthClientId,
-      oAuthClientSecret,
-      oAuthProviderScope,
       nyplDataApiBaseUrl,
-      recapCancelRequestSchema,
-      nyplCheckinRequestApiUrl,
-      nyplCheckoutRequestApiUrl,
-      cancelRequestResultSchemaName,
-      cancelRequestResultStreamName,
-      sierraUrl,
-      sierraId,
-      sierraSecret
+      sierraUrl
     } = opts;
     let record;
     for (let i = 0; i < records.length; i++) {
@@ -39,7 +28,7 @@ exports.processRecords = async function (records, opts, token, sierraToken) {
     logger.error('Error processing records');
     return Promise.reject(e);
   }
-},
+};
 
 exports.handleKinesisAsyncProcessing = async function (records, opts, context, callback) {
   try {
@@ -50,8 +39,6 @@ exports.handleKinesisAsyncProcessing = async function (records, opts, context, c
       oAuthProviderScope,
       nyplDataApiBaseUrl,
       recapCancelRequestSchema,
-      nyplCheckinRequestApiUrl,
-      nyplCheckoutRequestApiUrl,
       cancelRequestResultSchemaName,
       cancelRequestResultStreamName,
       sierraUrl,
@@ -69,7 +56,7 @@ exports.handleKinesisAsyncProcessing = async function (records, opts, context, c
     const unprocessedRecords = await Cache.filterProcessedRecords(decodedRecords);
     const processedRecords = await exports.processRecords(unprocessedRecords, opts, tokenResponse.token, sierraTokenResponse.token);
 
-    [ tokenResponse, sierraTokenResponse].forEach((response) => {
+    [ tokenResponse, sierraTokenResponse ].forEach((response) => {
       if (response.tokenType === 'new-token') {
         logger.info(`Obtained a new access token from ${response.tokenName}`);
         Cache.setToken(response.token, response.tokenName);
@@ -84,7 +71,7 @@ exports.handleKinesisAsyncProcessing = async function (records, opts, context, c
 
     if (!proccessedItemsToStream || !Array.isArray(proccessedItemsToStream)) {
       logger.error('The CancelRequestConsumer Lambda failed to proccess all Cancel Request Items', { proccessedItemsToStream: proccessedItemsToStream });
-      return callback('The CancelRequestConsumer Lambda failed to proccess all Cancel Request Items');
+      return callback(null, 'The CancelRequestConsumer Lambda failed to proccess all Cancel Request Items');
     }
 
     logger.info('The CancelRequestConsumer Lambda has successfully processed all Cancel Request Items; no fatal errors have occured');

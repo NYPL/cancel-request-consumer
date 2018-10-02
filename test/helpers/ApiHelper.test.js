@@ -600,8 +600,8 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
           count += 1
           return [{record: 'https://fakeapiurl.org/11111', id: 'aaaa'}]
         } else if (count === 10) {
-          return [{record: 'https://fakeapiurl.org/22222', id: 'bbbbb'}]
           count += 1
+          return [{record: 'https://fakeapiurl.org/22222', id: 'bbbbb'}]
         } else {
           return []
         }
@@ -635,8 +635,8 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
           count += 1
           return [{record: 'https://fakeapiurl.org/11111', id: 'aaaa'}]
         } else if (count === 10) {
-          return []
           count += 1
+          return []
         } else {
           return []
         }

@@ -57,12 +57,8 @@ const ApiHelper = {
   },
   generateCancelApiModel (object, token, apiDataUrl, getHoldrequestId, generateCancelApiModel, getApiHeaders, page = 0) {
     const {
-      id,
       patronId,
-      itemId,
-      patronBarcode,
-      itemBarcode,
-      holdRequestId = null
+      itemId
     } = object;
 
     return new Promise((resolve, reject) => {

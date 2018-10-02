@@ -107,7 +107,7 @@ const fetchAccessToken = function (oauthUrl, clientId, clientSecret, scope, gran
 }
 
 const getBasicAuthHeaders = function (clientId, clientSecret) {
-  return {'auth': {'username': clientId, 'password': clientSecret } }
+  return { 'auth': { 'username': clientId, 'password': clientSecret } }
 }
 
 const fetchSierraToken = function (authUrl, clientId, clientSecret, scope, grantType) {

@@ -42,7 +42,7 @@ describe('CancelRequestConsumer Lambda: StreamHelper', () => {
     });
 
     it('should return a failure object if deleted boolean flag is false', () => {
-      const result = generateStreamModel({ id: 123, deleted: false});
+      const result = generateStreamModel({ id: 123, deleted: false });
 
       expect(result).to.deep.equal({
         cancelRequestId: 123,
