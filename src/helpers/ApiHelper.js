@@ -31,9 +31,12 @@ const ApiHelper = {
     })
   },
   findItemIdFromBarcode (object, token, apiUrl) {
+    console.log(34, apiUrl + `items?barcode=${object.itemBarcode}`, this.getApiHeaders(token))
     return axios.get(apiUrl + `items?barcode=${object.itemBarcode}`, this.getApiHeaders(token))
     .then((resp) => {
+      console.log(36, resp)
       if (resp.data && resp.data.data && resp.data.data[0] && resp.data.data[0].id) {
+        console.log(resp.data.data[0].id)
         object.itemId = resp.data.data[0].id;
       } else {
         logger.error(`Error finding item from url ${apiUrl} with barcode ${object.itemBarcode} when tokenIsSet is ${!!token}`)

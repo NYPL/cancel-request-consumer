@@ -24,3 +24,5 @@ coverage
 
 
 config/local.env
+config/real_local.env
+config/fake_local.env
