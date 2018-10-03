@@ -19,11 +19,8 @@ exports.processRecords = async function (records, opts, token, sierraToken) {
     let record;
     for (let i = 0; i < records.length; i++) {
       record = records[i];
-      console.log(22, i)
       await ApiHelper.findPatronIdFromBarcode(record, sierraToken, sierraUrl);
-      console.log(24, i)
       await ApiHelper.findItemIdFromBarcode(record, token, nyplDataApiBaseUrl);
-      console.log(26, i)
       await ApiHelper.generateCancelApiModel(record, sierraToken, sierraUrl, ApiHelper.getHoldrequestId, ApiHelper.generateCancelApiModel, ApiHelper.getApiHeaders)
     }
     return Promise.resolve(records);

@@ -36,7 +36,6 @@ const fetchAccessToken = function (oauthUrl, clientId, clientSecret, scope, gran
   return axios.post(oauthUrl, qs.stringify(oAuthConfig))
   .then(result => {
     if (result.data && result.data.access_token) {
-      console.log(result.data.access_token, 39);
       return Promise.resolve(result.data.access_token);
     }
 
