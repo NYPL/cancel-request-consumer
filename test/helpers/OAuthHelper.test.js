@@ -3,7 +3,7 @@ import axios from 'axios';
 import MockAdapter from 'axios-mock-adapter';
 import chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
-import { getOauthConfig, fetchAccessToken, handleAuthentication } from '../../src/helpers/OAuthHelper';
+import { getOauthConfig, fetchAccessToken, fetchSierraToken, handleAuthentication } from '../../src/helpers/OAuthHelper';
 import CancelRequestConsumerError from '../../src/helpers/ErrorHelper';
 const expect = chai.expect;
 chai.should();
@@ -69,8 +69,7 @@ describe('CancelRequestConsumer Lambda: OAuthHelper Factory', () => {
       expect(result).to.be.an('object').and.to.deep.equal({
         client_id: 'clientId',
         client_secret: 'clientSecret',
-        grant_type: 'client_credentials',
-        scope: 'scope'
+        grant_type: 'client_credentials'
       });
     });
 
@@ -80,8 +79,7 @@ describe('CancelRequestConsumer Lambda: OAuthHelper Factory', () => {
       expect(result).to.be.an('object').and.to.deep.equal({
         client_id: 'clientId',
         client_secret: 'clientSecret',
-        grant_type: 'customGrantType',
-        scope: 'scope'
+        grant_type: 'customGrantType'
       });
     });
   });
@@ -140,11 +138,66 @@ describe('CancelRequestConsumer Lambda: OAuthHelper Factory', () => {
     });
   });
 
+  describe('fetchSierraToken(authUrl, clientId, clientSecret, scope, grantType)', () => {
+    it('should reject the Promise if the authUrl string parameter is NULL', () => {
+      const result = fetchSierraToken(null, 'clientId', 'clientSecret', 'scope', 'customGrantType');
+      return result.should.be.rejectedWith(CancelRequestConsumerError, 'fetchSierraToken: the authUrl function parameter is not defined or invalid; must be of type string and not empty');
+    });
+
+    it('should reject the Promise if the authUrl string parameter is NOT a string', () => {
+      const result = fetchSierraToken({}, 'clientId', 'clientSecret', 'scope', 'customGrantType');
+      return result.should.be.rejectedWith(CancelRequestConsumerError, 'fetchSierraToken: the authUrl function parameter is not defined or invalid; must be of type string and not empty');
+    });
+
+    it('should reject the Promise if the authUrl string parameter is EMPTY', () => {
+      const result = fetchSierraToken(' ', 'clientId', 'clientSecret', 'scope', 'customGrantType');
+      return result.should.be.rejectedWith(CancelRequestConsumerError, 'fetchSierraToken: the authUrl function parameter is not defined or invalid; must be of type string and not empty');
+    });
+
+    it('should resolve the Promise with an access_token when the Auth URL is valid', () => {
+      mock.onPost().reply(
+        200,
+        {
+          access_token: 'validaccesstoken'
+        }
+      );
+
+      const response = fetchSierraToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope');
+      return response.should.be.fulfilled.and.should.become('validaccesstoken');
+    });
+
+    it('should reject the Promise with an error response when response does not contain an access_token key', () => {
+      mock.onPost().reply(
+        200,
+        {}
+      );
+
+      const response = fetchSierraToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope');
+
+      return response.should.be.rejectedWith(CancelRequestConsumerError, 'fetchSierraToken: the AuthResponse object contained an undefined access_token property');
+    });
+
+    it('should reject the Promise with an error response when the Auth server returns a 404', () => {
+      mock.onPost().reply(404);
+
+      const response = fetchSierraToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope');
+      return response.should.be.rejected.and.should.eventually.have.property('statusCode', 404);
+    });
+
+    it('should reject the Promise with an error response when the Auth server returns a 500 (Internal Server Error)', () => {
+      mock.onPost().reply(500);
+
+      const response = fetchSierraToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope');
+      return response.should.be.rejected.and.should.eventually.have.property('statusCode', 500);
+    });
+  });
+
   describe('handleAuthentication(cachedToken, fetchTokenCallbackFn) function', () => {
     it('should resolve the Promise when the cachedToken parameter is already defined', () => {
-      const result = handleAuthentication('cachedTokenValue');
+      const result = handleAuthentication('cachedTokenValue', null, 'token');
       return result.should.be.fulfilled.and.should.eventually.deep.equal({
         tokenType: 'cached-token',
+        tokenName: 'token',
         token: 'cachedTokenValue'
       });
     });
@@ -157,10 +210,11 @@ describe('CancelRequestConsumer Lambda: OAuthHelper Factory', () => {
         }
       );
 
-      const result = handleAuthentication(null, fetchAccessToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope'));
+      const result = handleAuthentication(null, fetchAccessToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope'), 'token');
 
       return result.should.be.fulfilled.and.should.eventually.deep.equal({
         tokenType: 'new-token',
+        tokenName: 'token',
         token: 'newAccessTokenResolved'
       });
     });
@@ -168,7 +222,7 @@ describe('CancelRequestConsumer Lambda: OAuthHelper Factory', () => {
     it('should call the fetchTokenCallbackFn when the cachedToken is undefined and if an API (5xx) error occurs should reject the Promise with the error', () => {
       mock.onPost().reply(500);
 
-      const result = handleAuthentication(null, fetchAccessToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope'));
+      const result = handleAuthentication(null, fetchAccessToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope'), 'token');
 
       return result.should.be.rejected.and.should.eventually.have.property('statusCode', 500);
     });
@@ -176,7 +230,7 @@ describe('CancelRequestConsumer Lambda: OAuthHelper Factory', () => {
     it('should call the fetchTokenCallbackFn when the cachedToken is undefined and if an API (4xx) error occurs should reject the Promise with the error', () => {
       mock.onPost().reply(401);
 
-      const result = handleAuthentication(null, fetchAccessToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope'));
+      const result = handleAuthentication(null, fetchAccessToken('http://oauth.testurl.org', 'clientId', 'clientSecret', 'scope'), 'token');
 
       return result.should.be.rejected.and.should.eventually.have.property('statusCode', 401);
     });
