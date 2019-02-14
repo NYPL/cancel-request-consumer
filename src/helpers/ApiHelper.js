@@ -51,22 +51,6 @@ const ApiHelper = {
       owningInstitutionId,
     };
   },
-  generateRecapApiModel (object) {
-    // which is the tracking id?
-    const {
-      trackingId,
-      patronBarcode,
-      itemBarcode,
-      owningInstitutionId = null
-    } = object;
-
-    return {
-      trackingId,
-      itemBarcode,
-      patronBarcode,
-      owningInstitutionId
-    };
-  },
   generateErrorResponseObject (obj) {
     const responseObject = obj || {};
     const errorObject = {};
@@ -257,7 +241,7 @@ const ApiHelper = {
     if (serviceType === 'recap-service') {
       return this.handleBatchAsyncPostRequests(
         items,
-        ApiHelper.postRecapItem.bind(this, apiUrl, token, this.handleApiErrors)
+        ApiHelper.patchRecapItem.bind(this, apiUrl, token, this.handleApiErrors)
       );
     }
   },
@@ -341,15 +325,19 @@ const ApiHelper = {
     logger.info(`Unable to sent POST request to checkin-service for Cancel Request Record (${item.id}); checkoutProccessed is false which indicates this item was not checked out`);
     return callback(null, item);
   },
-  postRecapItem (apiUrl, token, errorHandlerFn, item, callback) {
+  patchRecapItem (apiUrl, token, errorHandlerFn, item, callback) {
     if (item && typeof item === 'object' && item.id) {
       //initialize the boolean flag to false until a successful post updates to true
       item.recapProcessed = false;
 
       if (item.checkoutProccessed === true && item.checkinProccessed === true) {
         logger.info(`Posting Cancel Request Record (${item.id}) to Recap`);
+        const recapApiModel = {
+          success: true,
+          processed: true,
+        }
 
-        return axios.post(apiUrl, this.generateRecapApiModel(item), this.getApiHeaders(token))
+        return axios.patch(`${apiUrl}/${item.id}`, recapApiModel, this.getApiHeaders(token))
         .then(result => {
           let processedItem = item;
           processedItem.recapApiResponse = this.generateSuccessfulResponseObject(result);
@@ -369,6 +357,10 @@ const ApiHelper = {
           return errorHandlerFn(errorResponse, 'recap-service', item, callback);
         })
       }
+
+      // Skip item if checkoutProccessed or checkinProccessed is not true
+      logger.info(`Will not patch Cancel Request Record: (${item.id}) in Recap. checkoutProccessed is: ${item.checkoutProccessed} and checkinProccessed is ${item.checkinProccessed}`);
+      return callback(null, item);
     }
   }
 };
