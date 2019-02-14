@@ -48,6 +48,22 @@ const ApiHelper = {
       cancelRequestId: id,
       jobId,
       itemBarcode,
+      owningInstitutionId,
+    };
+  },
+  generateRecapApiModel (object) {
+    // which is the tracking id?
+    const {
+      trackingId,
+      patronBarcode,
+      itemBarcode,
+      owningInstitutionId = null
+    } = object;
+
+    return {
+      trackingId,
+      itemBarcode,
+      patronBarcode,
       owningInstitutionId
     };
   },
@@ -237,6 +253,13 @@ const ApiHelper = {
         ApiHelper.postCheckOutItem.bind(this, apiUrl, token, this.handleApiErrors)
       );
     }
+
+    if (serviceType === 'recap-service') {
+      return this.handleBatchAsyncPostRequests(
+        items,
+        ApiHelper.postRecapItem.bind(this, apiUrl, token, this.handleApiErrors)
+      );
+    }
   },
   handleBatchAsyncPostRequests (items, processingFn) {
     return new Promise((resolve, reject) => {
@@ -317,6 +340,36 @@ const ApiHelper = {
     // Skip over item since itemBarcode is not defined and checkoutProccessed is false
     logger.info(`Unable to sent POST request to checkin-service for Cancel Request Record (${item.id}); checkoutProccessed is false which indicates this item was not checked out`);
     return callback(null, item);
+  },
+  postRecapItem (apiUrl, token, errorHandlerFn, item, callback) {
+    if (item && typeof item === 'object' && item.id) {
+      //initialize the boolean flag to false until a successful post updates to true
+      item.recapProcessed = false;
+
+      if (item.checkoutProccessed === true && item.checkinProccessed === true) {
+        logger.info(`Posting Cancel Request Record (${item.id}) to Recap`);
+
+        return axios.post(apiUrl, this.generateRecapApiModel(item), this.getApiHeaders(token))
+        .then(result => {
+          let processedItem = item;
+          processedItem.recapApiResponse = this.generateSuccessfulResponseObject(result);
+
+          if (this.isItemPostSuccessful(result, 'success')) {
+            logger.info(`Successfully posted Cancel Request Record (${item.id}) to Recap; assigned response to record`);
+            processedItem = Object.assign(processedItem, { recapProcessed: true}, { success: true});
+          }
+
+          return callback(null, processedItem);
+        })
+        .catch(error => {
+          const errorResponse = this.generateErrorResponseObject(error);
+          // Assign the error clean error object to the item
+          item.error = errorResponse;
+          // Handle retries or fatal errors by error status code
+          return errorHandlerFn(errorResponse, 'recap-service', item, callback);
+        })
+      }
+    }
   }
 };
 
