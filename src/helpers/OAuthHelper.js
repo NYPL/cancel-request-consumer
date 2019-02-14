@@ -20,8 +20,8 @@ const getOauthConfig = function (clientId, clientSecret, scope, grantType = 'cli
   return {
     client_id: clientId,
     client_secret: clientSecret,
-    grant_type: grantType
-    // scope
+    grant_type: grantType,
+    scope
   };
 }
 
@@ -33,6 +33,7 @@ const fetchAccessToken = function (oauthUrl, clientId, clientSecret, scope, gran
   }
 
   const oAuthConfig = getOauthConfig(clientId, clientSecret, scope, grantType);
+
   return axios.post(oauthUrl, qs.stringify(oAuthConfig))
   .then(result => {
     if (result.data && result.data.access_token) {
@@ -106,99 +107,12 @@ const fetchAccessToken = function (oauthUrl, clientId, clientSecret, scope, gran
   });
 }
 
-const getBasicAuthHeaders = function (clientId, clientSecret) {
-  return { 'auth': { 'username': clientId, 'password': clientSecret } }
-}
-
-const fetchSierraToken = function (authUrl, clientId, clientSecret, scope, grantType) {
-  if (!authUrl || typeof authUrl !== 'string' || authUrl.trim() === '') {
-    return Promise.reject(
-      new CancelRequestConsumerError('fetchSierraToken: the authUrl function parameter is not defined or invalid; must be of type string and not empty')
-    );
-  }
-
-  // const oAuthConfig = getOauthConfig(clientId, clientSecret, scope, grantType);
-  const headers = getBasicAuthHeaders(clientId, clientSecret);
-  return axios.post(authUrl + 'token', {}, headers)
-  .then(result => {
-    if (result.data && result.data.access_token) {
-      return Promise.resolve(result.data.access_token);
-    }
-    return Promise.reject(
-      new CancelRequestConsumerError(
-        'fetchSierraToken: the AuthResponse object contained an undefined access_token property',
-        { type: 'invalid-access-token-response' }
-      )
-    );
-  })
-  .catch(error => {
-    let errorMessage = 'fetchSierraToken: An error occurred from the auth service';
-
-    if (error.response) {
-      const statusCode = error.response.status;
-      const statusText = error.response.statusText;
-      if (statusCode) {
-        errorMessage += `; the service responded with status code: (${statusCode})`;
-      }
-      if (statusText) {
-        errorMessage += ` and status text: (${statusText})`;
-      }
-
-      logger.error(errorMessage, { debugInfo: error.response });
-      return Promise.reject(
-        new CancelRequestConsumerError(
-          errorMessage,
-          {
-            type: 'auth-service-error',
-            statusCode: error.response.status || null
-          }
-        )
-      );
-    }
-
-    if (error.request) {
-      errorMessage += '; the request was made, no response received from Auth Service';
-
-      logger.error(errorMessage, { debugInfo: error.request });
-      return Promise.reject(
-        new CancelRequestConsumerError(
-          errorMessage,
-          {
-            type: 'auth-service-error',
-            debugInfo: error.request
-          }
-        )
-      );
-    }
-
-    if (error.type === 'invalid-access-token-response') {
-      errorMessage += `; ${error.message}`;
-
-      logger.error(errorMessage, { debugInfo: error });
-      return Promise.reject(error);
-    }
-
-    errorMessage += '; an fatal server error occurred from the OAuth Service';
-    logger.error(errorMessage, { debugInfo: error });
-    return Promise.reject(
-      new CancelRequestConsumerError(
-        errorMessage,
-        {
-          type: 'oauth-service-error',
-          debugInfo: error
-        }
-      )
-    );
-  });
-}
-
-const handleAuthentication = async function (cachedToken, getNewTokenFn, name) {
+const handleAuthentication = async function (cachedToken, getNewTokenFn) {
   if (cachedToken && typeof cachedToken === 'string' && cachedToken !== '') {
     // Re-use cached access token
     return {
       tokenType: 'cached-token',
-      token: cachedToken,
-      tokenName: name
+      token: cachedToken
     };
   }
 
@@ -207,8 +121,7 @@ const handleAuthentication = async function (cachedToken, getNewTokenFn, name) {
     const accessToken = await getNewTokenFn;
     return {
       tokenType: 'new-token',
-      token: accessToken,
-      tokenName: name
+      token: accessToken
     };
   } catch (e) {
     throw e;
@@ -218,7 +131,5 @@ const handleAuthentication = async function (cachedToken, getNewTokenFn, name) {
 export {
   getOauthConfig,
   fetchAccessToken,
-  handleAuthentication,
-  fetchSierraToken,
-  getBasicAuthHeaders
+  handleAuthentication
 }

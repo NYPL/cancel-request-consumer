@@ -20,13 +20,13 @@ describe('CancelRequestConsumer Lambda: Cache Factory', () => {
 
   it('should return the token value when using getToken() function', () => {
     const newToken = 'testtoken';
-    Cache.setToken(newToken, 'token');
+    Cache.setToken(newToken);
     expect(Cache.getToken()).to.equal(newToken);
   });
 
   it('should set the token value when using setToken(token) function', () => {
     const newToken = 'testtoken';
-    Cache.setToken(newToken, 'token');
+    Cache.setToken(newToken);
     expect(Cache.token).to.equal(newToken);
   });
 

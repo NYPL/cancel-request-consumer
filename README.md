@@ -32,10 +32,93 @@ Install all Node dependencies via NPM
 $ npm install
 ```
 
-### Developing Locally
+### Setup Configurations
 
-To develop and run your Lambda locally you must set up a config/local.env file.
-If you do not encrypt the values of the OAUTH variables, you must set NODE_ENV to development
+Once all dependencies are installed, you want to run the following NPM commands included in the `package.json` configuration file to setup a local development environment.
+
+#### Step 1: Create an `.env` file for the `node-lambda` module
+> Copies the sample .env file under ./sample/.env.sample into ./.env
+
+```console
+$ npm run setup-node-lambda-env
+```
+
+#### Step 2: Add your AWS environment variables
+Once the `.env` file is copied, open the file and edit the following:
+```console
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_PROFILE=
+AWS_SESSION_TOKEN=
+AWS_ROLE_ARN=
+AWS_REGION=us-east-1
+AWS_FUNCTION_NAME=<FUNCTION NAME>
+AWS_HANDLER=index.handler
+AWS_MEMORY_SIZE=128
+AWS_TIMEOUT=30
+AWS_DESCRIPTION=
+AWS_RUNTIME=nodejs6.10
+AWS_VPC_SUBNETS=
+AWS_VPC_SECURITY_GROUPS=
+AWS_TRACING_CONFIG=
+EXCLUDE_GLOBS="event.json"
+PACKAGE_DIRECTORY=build
+```
+> Note: This ENV file is used by node-lambda to obtain your AWS basic configuration. AWS ARN_ROLE and PROFILES are handled by npm commands via --profile and --role
+#### Step 3: Setup your environment specific `{environment}.env` file
+
+Running the following NPM Commands will:
+
+* Set up your **LOCAL** `.env` file as `./config/local.env` used for local development
+
+```console
+$ npm run setup-local-env // Used in local development when running `npm run local-run`
+```
+
+* Set up your **DEVELOPMENT** `.env` file as `./config/dev.env`
+```console
+$ npm run setup-dev-env
+```
+
+* Set up your **PRODUCTION** `.env` file as `./config/prod.env`
+```console
+$ npm run setup-prod-env
+```
+
+These environment specific `.env` files will be used to set **environment variables** when deployed by the `node-lambda` module.
+
+An example of the sample deployment environment `.env` file:
+```console
+NYPL_CHECKOUT_API_URL=XXX
+NYPL_CHECKIN_API_URL=XXX
+OAUTH_PROVIDER_URL=XXX
+OAUTH_PROVIDER_SCOPE=XXX
+OAUTH_CLIENT_ID=XXX
+OAUTH_CLIENT_SECRET=XXX
+RECAP_CANCEL_REQUEST_SCHEMA_NAME=XXX
+CANCEL_REQUEST_RESULT_STREAM_NAME=XXX
+CANCEL_REQUEST_RESULT_SCHEMA_NAME=XXX
+NODE_ENV=XXX // Use 'development' when developing locally via `npm run local-run`. If deploying to AWS use 'production', this will trigger the decryption client.
+```
+
+#### Step 4: Setup your environment specific `event_sources_{environment}.json` file
+This file is used by the `node-lambda` module to deploy your Lambda with the correct mappings.
+
+You **must** edit the file once created and add your specific **EventSourceArn** value, found in the AWS Console. If no mapping is necessary, update the file to an empty object `{}`.
+
+Running the following NPM Commands will:
+
+* Set up your **DEVELOPMENT** `event_sources_dev.json` file in `./config/`
+```console
+$ npm run setup-dev-sources
+```
+
+* Set up your **PRODUCTION** `event_sources_prod.json` file in `./config/`
+```console
+$ npm run setup-prod-sources
+```
+### Developing Locally
+To develop and run your Lambda locally you must ensure to complete `Step 1` and `Step 2` of the Setup process.
 
 ***REMINDER:*** Your `./config/local.env` and `./.env` environment variables ***MUST*** be configured in order for the next step to work.
 
@@ -47,14 +130,20 @@ $ npm run local-run // Code is transpiled into dist/ and node-lambda will use th
 ```
 
 ### Deploying your Lambda
+To deploy your Lambda function via the `node-lambda` module __**ensure**__ you have completed all the steps of the [Setup](#setup-configurations) process and have added all configuration variables required.
 
-The following NPM Commands will execute the `node-lambda deploy` command mapping configurations to the proper environments. These commands can be modified in `package.json`.
+The following NPM Commands will execute the `node-lambda deploy` command mapping configurations to the proper environments (qa & production). These commands can be modified in `package.json`.
 
 > Prior to the execution of any `npm deploy ...` commands, `npm run build` is executed to successfully transpile all ES7 code th Node 6.10.x
 
 * Runs `node-lambda deploy` with **DEVELOPMENT** configurations
 ```console
-$ npm run deploy-[development|qa|production]
+$ npm run deploy-dev
+```
+
+* Runs `node-lambda deploy` with **PRODUCTION** configurations
+```console
+$ npm run deploy-prod
 ```
 
 ### Tests

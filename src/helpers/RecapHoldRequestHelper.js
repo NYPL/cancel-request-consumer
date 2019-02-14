@@ -3,28 +3,10 @@ import async from 'async';
 import CancelRequestConsumerError from './ErrorHelper';
 import logger from './Logger';
 
-const postItemsToStream = function (items, streamName, schemaName, streamsClient) {
+const postItemsToRecap = function (items) {
   if (!items || !Array.isArray(items) || items.length === 0) {
     return Promise.reject(
-      new CancelRequestConsumerError('the items array property not defined or empty, unable to post records to stream')
-    );
-  }
-
-  if (!streamName || typeof streamName !== 'string' || streamName.trim() === '') {
-    return Promise.reject(
-      new CancelRequestConsumerError('the streamName string parameter is not defined, unable to post records to stream')
-    );
-  }
-
-  if (!schemaName || typeof schemaName !== 'string' || schemaName.trim() === '') {
-    return Promise.reject(
-      new CancelRequestConsumerError('the schemaName string parameter is not defined, unable to post records to stream')
-    );
-  }
-
-  if (!streamsClient || typeof streamsClient !== 'object' || typeof streamsClient.write !== 'function') {
-    return Promise.reject(
-      new CancelRequestConsumerError('the streamsClient utility class does not contain the write() function, unable to post records to stream')
+      new CancelRequestConsumerError('the items array property not defined or empty, unable to post records to RecapHoldRequestService')
     );
   }
 
@@ -33,7 +15,7 @@ const postItemsToStream = function (items, streamName, schemaName, streamsClient
       items,
       (item, callback) => {
         item.proccessedToResultStream = false;
-        const itemToPost = generateStreamModel(item);
+        const itemToPost = generateRecapModel(item);
 
         return streamsClient.write(streamName, itemToPost, { avroSchemaName: schemaName })
         .then(response => {
@@ -70,7 +52,7 @@ const generateStreamModel = function (object) {
 
   objectToBePosted.cancelRequestId = object.id;
   objectToBePosted.jobId = object.jobId || null;
-  if (object.checkoutProccessed === true && object.checkinProccessed === true) {
+  if (object.deleted === true) {
     objectToBePosted.success = true;
     objectToBePosted.error = null;
   } else {
