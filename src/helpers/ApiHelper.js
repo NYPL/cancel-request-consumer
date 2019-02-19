@@ -239,10 +239,16 @@ const ApiHelper = {
     }
 
     if (serviceType === 'recap-service') {
-      return this.handleBatchAsyncPostRequests(
-        items,
-        ApiHelper.patchRecapItem.bind(this, apiUrl, token, this.handleApiErrors)
-      );
+      try {
+
+        return this.handleBatchAsyncPostRequests(
+          items,
+          ApiHelper.patchRecapItem.bind(this, apiUrl, token, this.handleApiErrors)
+        );
+      }
+      catch(err) {
+        console.log(250, err.message)
+      }
     }
   },
   handleBatchAsyncPostRequests (items, processingFn) {
