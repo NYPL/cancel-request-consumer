@@ -4,16 +4,12 @@ import logger from '../helpers/Logger';
 
 const Cache = {
   token: null,
-  sierraToken: null,
   nodeEnv: process.env.NODE_ENV,
   getToken () {
     return this.token;
   },
-  getSierraToken () {
-    return this.sierraToken;
-  },
-  setToken (token, tokenName) {
-    this[tokenName] = token;
+  setToken (token) {
+    this.token = token;
   },
   getNodeEnv () {
     return this.nodeEnv;

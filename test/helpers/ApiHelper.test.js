@@ -7,7 +7,6 @@ import chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import ApiHelper from '../../src/helpers/ApiHelper';
 import CancelRequestConsumerError from '../../src/helpers/ErrorHelper';
-import logger from '../../src/helpers/Logger'
 const expect = chai.expect;
 chai.use(sinonChai);
 chai.use(chaiAsPromised);
@@ -49,6 +48,73 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
           Authorization: 'Bearer tokenvalue'
         },
         timeout: 25000
+      });
+    });
+  });
+
+  describe('generateCheckoutApiModel(object) function', () => {
+    it('should return the minimum required object properties', () => {
+      const checkoutApiModel = ApiHelper.generateCheckoutApiModel({ id: 123, patronBarcode: 'pbarcode', itemBarcode: 'ibarcode' });
+
+      return checkoutApiModel.should.deep.equal({
+        cancelRequestId: 123,
+        jobId: null,
+        patronBarcode: 'pbarcode',
+        itemBarcode: 'ibarcode',
+        owningInstitutionId: null,
+        desiredDateDue: null
+      });
+    });
+
+    it('should return the correct object properties when the optional fields are defined', () => {
+      const checkoutApiModel = ApiHelper.generateCheckoutApiModel({
+        id: 123,
+        jobId: 'abc',
+        patronBarcode: 'pbarcode',
+        itemBarcode: 'ibarcode',
+        owningInstitutionId: 'NYPL',
+        desiredDateDue: '20170919'
+      });
+
+      return checkoutApiModel.should.deep.equal({
+        cancelRequestId: 123,
+        jobId: 'abc',
+        patronBarcode: 'pbarcode',
+        itemBarcode: 'ibarcode',
+        owningInstitutionId: 'NYPL',
+        desiredDateDue: '20170919'
+      });
+    });
+  });
+
+  describe('generateCheckinApiModel(object) function', () => {
+    it('should return the minimum required object properties', () => {
+      const checkinApiModel = ApiHelper.generateCheckinApiModel({
+        id: 123,
+        itemBarcode: 'abc'
+      });
+
+      return checkinApiModel.should.deep.equal({
+        cancelRequestId: 123,
+        jobId: null,
+        itemBarcode: 'abc',
+        owningInstitutionId: null
+      });
+    });
+
+    it('should return the correct object properties when the optional fields are defined', () => {
+      const checkinApiModel = ApiHelper.generateCheckinApiModel({
+        id: 123,
+        itemBarcode: 'abc',
+        jobId: 'exampleJobId',
+        owningInstitutionId: 'NYPL'
+      });
+
+      return checkinApiModel.should.deep.equal({
+        cancelRequestId: 123,
+        jobId: 'exampleJobId',
+        itemBarcode: 'abc',
+        owningInstitutionId: 'NYPL'
       });
     });
   });
@@ -245,6 +311,124 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
     });
   });
 
+  describe('handleCancelItemPostRequests(items, type, apiUrl) function', () => {
+    it('should reject the Promise with an error if the items array parameter is NULL', () => {
+      const result = ApiHelper.handleCancelItemPostRequests(null, 'checkin-service', 'http://fakeurl.org');
+
+      return result.should.be.rejectedWith(CancelRequestConsumerError, /the items array parameter is undefined/);
+    });
+
+    it('should reject the Promise with an error if the items array parameter is UNDEFINED', () => {
+      const result = ApiHelper.handleCancelItemPostRequests(undefined, 'checkin-service', 'http://fakeurl.org');
+
+      return result.should.be.rejectedWith(CancelRequestConsumerError, /the items array parameter is undefined/);
+    });
+
+    it('should reject the Promise with an error if the items array parameter is NOT of type array', () => {
+      const result = ApiHelper.handleCancelItemPostRequests({}, 'checkin-service', 'http://fakeurl.org');
+
+      return result.should.be.rejectedWith(CancelRequestConsumerError, /the items array parameter is not of type array/);
+    });
+
+    it('should reject the Promise with an error if the items array parameter is an EMPTY array', () => {
+      const result = ApiHelper.handleCancelItemPostRequests([], 'checkin-service', 'http://fakeurl.org');
+
+      return result.should.be.rejectedWith(CancelRequestConsumerError, /the items array parameter is empty/);
+    });
+
+    it('should reject the Promise with an error if the items serviceType parameter is NULL', () => {
+      const result = ApiHelper.handleCancelItemPostRequests([{}], null, 'http://fakeurl.org');
+
+      return result.should.be.rejectedWith(CancelRequestConsumerError, /the serviceType string parameter is not defined or empty/);
+    });
+
+    it('should reject the Promise with an error if the items serviceType parameter is UNDEFINED', () => {
+      const result = ApiHelper.handleCancelItemPostRequests([{}], undefined, 'http://fakeurl.org');
+
+      return result.should.be.rejectedWith(CancelRequestConsumerError, /the serviceType string parameter is not defined or empty/);
+    });
+
+    it('should reject the Promise with an error if the items serviceType parameter is NOT of type string', () => {
+      const result = ApiHelper.handleCancelItemPostRequests([{}], [], 'http://fakeurl.org');
+
+      return result.should.be.rejectedWith(CancelRequestConsumerError, /the serviceType string parameter is not defined or empty/);
+    });
+
+    it('should reject the Promise with an error if the items serviceType parameter is an EMPTY string', () => {
+      const result = ApiHelper.handleCancelItemPostRequests([{}], '', 'http://fakeurl.org');
+
+      return result.should.be.rejectedWith(CancelRequestConsumerError, /the serviceType string parameter is not defined or empty/);
+    });
+
+    it('should reject the Promise with an error if the items apiUrl parameter is NULL', () => {
+      const result = ApiHelper.handleCancelItemPostRequests([{}], 'checkin-service', null);
+
+      return result.should.be.rejectedWith(CancelRequestConsumerError, /the apiUrl string parameter is not defined or empty/);
+    });
+
+    it('should reject the Promise with an error if the items apiUrl parameter is UNDEFINED', () => {
+      const result = ApiHelper.handleCancelItemPostRequests([{}], 'checkin-service', undefined);
+
+      return result.should.be.rejectedWith(CancelRequestConsumerError, /the apiUrl string parameter is not defined or empty/);
+    });
+
+    it('should reject the Promise with an error if the items apiUrl parameter is NOT of type string', () => {
+      const result = ApiHelper.handleCancelItemPostRequests([{}], 'checkin-service', {});
+
+      return result.should.be.rejectedWith(CancelRequestConsumerError, /the apiUrl string parameter is not defined or empty/);
+    });
+
+    it('should reject the Promise with an error if the items apiUrl parameter is an EMPTY string', () => {
+      const result = ApiHelper.handleCancelItemPostRequests([{}], 'checkin-service', '');
+
+      return result.should.be.rejectedWith(CancelRequestConsumerError, /the apiUrl string parameter is not defined or empty/);
+    });
+
+    it('should reject the Promise with an error if the token parameter is NULL', () => {
+      const result = ApiHelper.handleCancelItemPostRequests([{}], 'checkin-service', 'http://apiurl.org', null);
+
+      return result.should.be.rejectedWith(CancelRequestConsumerError, /the token string parameter is not defined or empty/);
+    });
+
+    it('should reject the Promise with an error if the token parameter is UNDEFINED', () => {
+      const result = ApiHelper.handleCancelItemPostRequests([{}], 'checkin-service', 'http://apiurl.org', undefined);
+
+      return result.should.be.rejectedWith(CancelRequestConsumerError, /the token string parameter is not defined or empty/);
+    });
+
+    it('should reject the Promise with an error if the token parameter is NOT of type string', () => {
+      const result = ApiHelper.handleCancelItemPostRequests([{}], 'checkin-service', 'http://apiurl.org', {});
+
+      return result.should.be.rejectedWith(CancelRequestConsumerError, /the token string parameter is not defined or empty/);
+    });
+
+    it('should reject the Promise with an error if the token parameter is an EMPTY string', () => {
+      const result = ApiHelper.handleCancelItemPostRequests([{}], 'checkin-service', 'http://apiurl.org', ' ');
+
+      return result.should.be.rejectedWith(CancelRequestConsumerError, /the token string parameter is not defined or empty/);
+    });
+
+    it('should call the handleBatchAsyncPostRequests when serviceType is checkin-service', () => {
+      let handleBatchAsyncPostRequestsStub = sinon.stub(ApiHelper, 'handleBatchAsyncPostRequests');
+
+      ApiHelper.handleCancelItemPostRequests([{}], 'checkin-service', 'http://checkin-service.api.org', 'token');
+
+      expect(handleBatchAsyncPostRequestsStub).to.be.called;
+
+      handleBatchAsyncPostRequestsStub.restore();
+    });
+
+    it('should call the handleBatchAsyncPostRequests when serviceType is checkout-service', () => {
+      let handleBatchAsyncPostRequestsStub = sinon.stub(ApiHelper, 'handleBatchAsyncPostRequests');
+
+      ApiHelper.handleCancelItemPostRequests([{}], 'checkout-service', 'http://checkout-service.api.org', 'token');
+
+      expect(handleBatchAsyncPostRequestsStub).to.be.called;
+
+      handleBatchAsyncPostRequestsStub.restore();
+    });
+  });
+
   describe('handleBatchAsyncPostRequests(items, processingFn) function', () => {
     const dummyRecords = [
       {
@@ -306,382 +490,344 @@ describe('CancelRequestConsumer Lambda: ApiHelper Factory', () => {
     });
   })
 
-  describe('deleteItem', () => {
-    it('should update item.deleted to true when it receives a 204 for a valid item', () => {
-      var item = {holdRequestId: 1};
-      mock.onDelete().reply(() => {
-        return [204, {
-          data: {
-            data: '',
-            statusCode: 204,
-            debugInfo: ''
-          }
-        }]
-      }
-      )
-      let promise = Promise.resolve()
-        .then(() => ApiHelper.deleteItem(null, (a, b) => { return null }, item, (a, b) => { return null }))
-        .then(() => item)
+  describe('postCheckOutItem(apiUrl, token, item, callback, errorHandlerFn) function', () => {
+    let callbackSpy = sinon.spy();
+    let errorHandlerFnSpy = sinon.spy();
 
-      return promise.should.eventually.have.property('deleted', true)
+    it('should call the callback with a NULL value if the item (object) is NULL', () => {
+      ApiHelper.postCheckOutItem(
+        'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
+        errorHandlerFnSpy,
+        null,
+        callbackSpy
+      );
+
+      expect(callbackSpy).to.have.been.calledWith(null);
     });
 
-    it('should not update item.deleted for an invalid item', () => {
-      var item = {};
-      mock.onDelete().reply(() => {
-        return [204, {
+    it('should call the callback with a NULL value if the item (object) is UNDEFINED', () => {
+      ApiHelper.postCheckOutItem(
+        'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
+        errorHandlerFnSpy,
+        undefined,
+        callbackSpy
+      );
+
+      expect(callbackSpy).to.have.been.calledWith(null);
+    });
+
+    it('should call the callback function with (null, item) and set checkoutProccessed to FALSE if the item is missing the patronBarcode property', () => {
+      let dummyItem = { id: 123, itemBarcode: 'test' };
+
+      ApiHelper.postCheckOutItem(
+        'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
+        errorHandlerFnSpy,
+        dummyItem,
+        callbackSpy
+      );
+
+      expect(callbackSpy).to.have.been.calledWith(null, { id: 123, itemBarcode: 'test', checkoutProccessed: false });
+    });
+
+    it('should call the callback function with (null, item) and set checkoutProccessed to FALSE if the item patronBarcode property is NULL', () => {
+      ApiHelper.postCheckOutItem(
+        'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
+        errorHandlerFnSpy,
+        { id: 123, patronBarcode: null, itemBarcode: 'test' },
+        callbackSpy
+      );
+
+      expect(callbackSpy).to.have.been.calledWith(null, { id: 123, itemBarcode: 'test', checkoutProccessed: false });
+    });
+
+    it('should call the callback function with (null, item) and set checkoutProccessed to FALSE if the item patronBarcode property is an empty string', () => {
+      ApiHelper.postCheckOutItem(
+        'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
+        errorHandlerFnSpy,
+        { id: 123, patronBarcode: '', itemBarcode: 'test' },
+        callbackSpy
+      );
+
+      expect(callbackSpy).to.have.been.calledWith(null, { id: 123, itemBarcode: 'test', checkoutProccessed: false });
+    });
+
+    it('should call the callback function with (null, item) and set checkoutProccessed to FALSE if the item is missing the itemBarcode property', () => {
+      ApiHelper.postCheckOutItem(
+        'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
+        errorHandlerFnSpy,
+        { id: 123, patronBarcode: 'test' },
+        callbackSpy
+      );
+
+      expect(callbackSpy).to.have.been.calledWith(null, { id: 123, patronBarcode: 'test', checkoutProccessed: false });
+    });
+
+    it('should call the callback function with (null, item) and set checkoutProccessed to FALSE if the item itemBarcode property is NULL', () => {
+      ApiHelper.postCheckOutItem(
+        'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
+        errorHandlerFnSpy,
+        { id: 123, patronBarcode: 'test', itemBarcode: null },
+        callbackSpy
+      );
+
+      expect(callbackSpy).to.have.been.calledWith(null, { id: 123, patronBarcode: 'test', checkoutProccessed: false });
+    });
+
+    it('should call the callback function with (null, item) and set checkoutProccessed to FALSE if the item itemBarcode property is an empty string', () => {
+      ApiHelper.postCheckOutItem(
+        'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
+        errorHandlerFnSpy,
+        { id: 123, patronBarcode: 'test', itemBarcode: ' ' },
+        callbackSpy
+      );
+
+      expect(callbackSpy).to.have.been.calledWith(null, { id: 123, patronBarcode: 'test', checkoutProccessed: false });
+    });
+
+    it('should exectue the callback function with the second parameter being the successful item response obtained by the CheckOut Service', () => {
+      let cbSpy = sinon.spy();
+
+      mock.onPost().reply(
+        200,
+        {
           data: {
-            data: '',
-            statusCode: 204,
-            debugInfo: ''
+            patronBarcode: 'test',
+            itemBarcode: 'barcode',
+            success: true
           }
-        }]
-      }
-      )
-      let promise = Promise.resolve()
-        .then(() => ApiHelper.deleteItem(null, (a, b) => { return null }, item, (a, b) => { return null }))
-        .then(() => item).catch(() => item)
-
-      return promise.should.eventually.not.have.property('deleted')
-    })
-    it('should call the callback for an invalid item', () => {
-      var item = {};
-      mock.onDelete().reply(() => {
-        return [204, {
-          data: {
-            data: '',
-            statusCode: 204,
-            debugInfo: ''
-          }
-        }]
-      }
-      )
-      let promise = Promise.resolve()
-        .then(() => ApiHelper.deleteItem(null, (a, b) => { return null }, item, (a, b) => { return 'called' }))
-
-      return promise.should.eventually.equal('called')
-    })
-    it('should not update item.deleted for non-204 response', () => {
-      var item = {holdRequestId: 1};
-      mock.onDelete().reply(() => {
-        return [401, {
-          data: {
-            data: '',
-            statusCode: 401,
-            debugInfo: ''
-          }
-        }]
-      }
-      )
-      let promise = Promise.resolve()
-        .then(() => ApiHelper.deleteItem(null, (a, b) => { return null }, item, (a, b) => { return 'called' }))
-        .then(() => item).catch(() => item)
-
-      return promise.should.eventually.not.have.property('deleted')
-    })
-    it('should update item.error for non-204 response', () => {
-      var item = {holdRequestId: 1};
-      mock.onDelete().reply(() => {
-        return [401, {
-          data: {
-            data: '',
-            statusCode: 401,
-            debugInfo: ''
-          }
-        }]
-      }
-      )
-      let promise = Promise.resolve()
-        .then(() => ApiHelper.deleteItem(null, (a, b) => { return null }, item, (a, b) => { return 'called' }))
-        .then(() => item).catch(() => item)
-
-      return promise.should.eventually.have.property('error')
-    })
-    it('should call errorHandlerFn for non-204 response', () => {
-      var item = {holdRequestId: 1};
-      mock.onDelete().reply(() => {
-        return [401, {
-          data: {
-            data: '',
-            statusCode: 401,
-            debugInfo: ''
-          }
-        }]
-      }
-      )
-      let promise = Promise.resolve()
-        .then(() => ApiHelper.deleteItem(null, (a, b) => { return 'errorHandlerFn' }, item, (a, b) => { return 'called' }))
-
-      return promise.should.eventually.equal('errorHandlerFn')
-    })
-  })
-
-  describe('getHoldrequestId', () => {
-    it('should return the id of a hold with the matching itemId', () => {
-      let itemId = 111;
-      let resp = {
-        data: {
-          entries: [
-            {record: 'https://platform.nypl.org/api/v0.1/patrons/424/holds/222', id: 'b'},
-            {record: 'https://platform.nypl.org/api/v0.1/patrons/424/holds/333', id: 'c'},
-            {record: 'https://platform.nypl.org/api/v0.1/patrons/424/holds/111', id: 'a'}
-          ]
         }
-      }
-      let id = ApiHelper.getHoldrequestId(resp, itemId);
-      return id.should.equal('a')
-    })
-    it('should return null if there is no item with matching itemId', () => {
-      let itemId = 111;
-      let resp = {
-        data: {
-          entries: [
-            {record: 'https://platform.nypl.org/api/v0.1/patrons/424/holds/222', id: 'b'},
-            {record: 'https://platform.nypl.org/api/v0.1/patrons/424/holds/333', id: 'c'}
-          ]
+      );
+
+      const result = ApiHelper.postCheckOutItem(
+        'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
+        null,
+        { id: 123, patronBarcode: 'test', itemBarcode: 'barcode' },
+        cbSpy
+      );
+
+      return result.then(data => {
+        expect(cbSpy).to.have.been.calledWithMatch(
+          null,
+          {
+            checkoutProccessed: true,
+            itemBarcode: 'barcode',
+            patronBarcode: 'test',
+            success: true
+          }
+        );
+      });
+    });
+
+    it('should exectue the callback function with the second parameter being the failure item response obtained by the CheckOut Service when response.data.data is not defined', () => {
+      let cbSpy = sinon.spy();
+
+      mock.onPost().reply(
+        200,
+        {
+          otherKey: {}
         }
-      }
-      let id = ApiHelper.getHoldrequestId(resp, itemId);
-      return (id === null).should.equal(true)
-    })
+      );
+
+      const result = ApiHelper.postCheckOutItem(
+        'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
+        null,
+        { id: 123, patronBarcode: 'test', itemBarcode: 'barcode' },
+        cbSpy
+      );
+
+      return result.then(data => {
+        expect(cbSpy).to.have.been.calledWithMatch(
+          null,
+          {
+            checkoutProccessed: false,
+            itemBarcode: 'barcode',
+            patronBarcode: 'test'
+          }
+        );
+      });
+    });
+
+    it('should exectue the errorCallback handler function on a 404 failure response', () => {
+      let errorCbSpy = sinon.spy();
+      let cbSpy = sinon.spy();
+
+      mock.onPost().reply(404);
+
+      const result = ApiHelper.postCheckOutItem(
+        'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
+        errorCbSpy,
+        { id: 123, patronBarcode: 'test', itemBarcode: 'barcode' },
+        cbSpy
+      );
+
+      return result.catch(error => {
+        expect(generateErrorResponseObjectStub).to.have.been.called;
+
+        expect(errorCbSpy).to.have.been.calledWith(
+          error,
+          'checkout-service',
+          {
+            id: 123,
+            checkoutProccessed: false,
+            itemBarcode: 'barcode',
+            patronBarcode: 'test'
+          },
+          cbSpy
+        );
+      });
+    });
+
+    it('should exectue the errorCallback handler function on a TIMEOUT failure response', () => {
+      let errorCbSpy = sinon.spy();
+      let cbSpy = sinon.spy();
+
+      mock.onPost().timeout();
+
+      const result = ApiHelper.postCheckOutItem(
+        'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
+        errorCbSpy,
+        { id: 123, patronBarcode: 'test', itemBarcode: 'barcode' },
+        cbSpy
+      );
+
+      return result.catch(error => {
+        expect(generateErrorResponseObjectStub).to.have.been.called;
+
+        expect(errorCbSpy).to.have.been.calledWith(
+          error,
+          'checkout-service',
+          {
+            id: 123,
+            checkoutProccessed: false,
+            itemBarcode: 'barcode',
+            patronBarcode: 'test'
+          },
+          cbSpy
+        );
+      });
+    });
   });
 
-  describe('handleCancelItemsDeleteRequests(items, sierraToken) function', () => {
-    it('should reject the Promise with an error if the items array parameter is NULL', () => {
-      const result = ApiHelper.handleCancelItemsDeleteRequests(null, 'hgljhgljjlgjg');
+  describe('postCheckinItem(apiUrl, token, errorHandlerFn, item, callback) function', () => {
+    let callbackSpy = sinon.spy();
+    let errorHandlerFnSpy = sinon.spy();
 
-      return result.should.be.rejectedWith(CancelRequestConsumerError, /the items array parameter is undefined/);
+    it('should call the callback with the error param as NULL and result as item if the checkoutProccessed is NOT defined', () => {
+      ApiHelper.postCheckInItem(
+        'https://api.nypltech.org/api/v0.1/checkin-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
+        errorHandlerFnSpy,
+        { id: 123, itemBarcode: 'abc' },
+        callbackSpy
+      );
+
+      expect(callbackSpy).to.have.been.calledWith(null, { id: 123, itemBarcode: 'abc', checkinProccessed: false });
     });
 
-    it('should reject the Promise with an error if the items array parameter is UNDEFINED', () => {
-      const result = ApiHelper.handleCancelItemsDeleteRequests(undefined, 'jakjvakawjkfaw');
+    it('should call the callback with the error param as NULL and result as item if the checkoutProccessed is FALSE', () => {
+      ApiHelper.postCheckInItem(
+        'https://api.nypltech.org/api/v0.1/checkin-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
+        errorHandlerFnSpy,
+        { id: 123, itemBarcode: 'abc', checkoutProccessed: false },
+        callbackSpy
+      );
 
-      return result.should.be.rejectedWith(CancelRequestConsumerError, /the items array parameter is undefined/);
+      expect(callbackSpy).to.have.been.calledWith(null, { id: 123, itemBarcode: 'abc', checkoutProccessed: false, checkinProccessed: false });
     });
 
-    it('should reject the Promise with an error if the items array parameter is NOT of type array', () => {
-      const result = ApiHelper.handleCancelItemsDeleteRequests({}, 'ajkflsdjkfahekhawe');
+    it('should exectue the callback function with the second parameter being the successful item response obtained by the CheckIn Service', () => {
+      let cbSpy = sinon.spy();
 
-      return result.should.be.rejectedWith(CancelRequestConsumerError, /the items array parameter is not of type array/);
+      mock.onPost().reply(
+        200,
+        {
+          data: {
+            patronBarcode: 'test',
+            itemBarcode: 'barcode',
+            success: true
+          }
+        }
+      );
+
+      const result = ApiHelper.postCheckInItem(
+        'https://api.nypltech.org/api/v0.1/checkin-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
+        null,
+        { id: 123, patronBarcode: 'test', itemBarcode: 'barcode', checkoutProccessed: true },
+        cbSpy
+      );
+
+      return result.then(data => {
+        expect(cbSpy).to.have.been.calledWithMatch(
+          null,
+          {
+            checkoutProccessed: true,
+            checkinProccessed: true,
+            itemBarcode: 'barcode',
+            patronBarcode: 'test',
+            success: true
+          }
+        );
+      });
     });
 
-    it('should reject the Promise with an error if the items array parameter is an EMPTY array', () => {
-      const result = ApiHelper.handleCancelItemsDeleteRequests([], 'tokentokentokentoken');
+    it('should exectue the callback function with the second parameter being the failure item response obtained by the CheckIn Service when response.data.data is not defined', () => {
+      let cbSpy = sinon.spy();
 
-      return result.should.be.rejectedWith(CancelRequestConsumerError, /the items array parameter is empty/);
+      mock.onPost().reply(
+        200,
+        {
+          otherKey: {}
+        }
+      );
+
+      const result = ApiHelper.postCheckInItem(
+        'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
+        null,
+        { id: 123, patronBarcode: 'test', itemBarcode: 'barcode', checkoutProccessed: true },
+        cbSpy
+      );
+
+      return result.then(data => {
+        expect(cbSpy).to.have.been.calledWithMatch(
+          null,
+          {
+            checkoutProccessed: true,
+            checkinProccessed: false,
+            itemBarcode: 'barcode',
+            patronBarcode: 'test',
+            id: 123
+          }
+        );
+      });
     });
 
-    it('should reject the Promise with an error if the token parameter is NULL', () => {
-      const result = ApiHelper.handleCancelItemsDeleteRequests([{}], null);
+    it('should exectue the errorCallback handler function on a 404 failure response', () => {
+      let errorCbSpy = sinon.spy();
+      let cbSpy = sinon.spy();
 
-      return result.should.be.rejectedWith(CancelRequestConsumerError, /the token string parameter is not defined or empty/);
-    });
+      mock.onPost().reply(404);
 
-    it('should reject the Promise with an error if the token parameter is UNDEFINED', () => {
-      const result = ApiHelper.handleCancelItemsDeleteRequests([{}], undefined);
+      const result = ApiHelper.postCheckInItem(
+        'https://api.nypltech.org/api/v0.1/checkout-requests', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJpc3NvLm55cGwub3JnIiwic3ViIjpudWxsLCJhdWQiOiJjYW5jZWxfcmVxdWVzdF9jb25zdW1lciIsImlhdCI6MTUwNTgyODc1MywiZXhwIjoxNTA1ODMyMzUzLCJhdXRoX3RpbWUiOjE1MDU4Mjg3NTMsInNjb3BlIjoid3JpdGU6Y2hlY2tpbl9yZXF1ZXN0IHdyaXRlOmNoZWNrb3V0X3JlcXVlc3QifQ.mc6pvnU-jBfaaE9uVjG8UNMg0XqV2e6Gz1NndeNeUT-A_Lh9ZeJCsEWDOh7D0lCfx5IlghyNVwMa98PLIz05ylzIEl0EzUYrCg5D5HjCpZZb7x72ZkjhpTeQX7mhnGzssjvYuK6TEbPNGoGO1KiiYP9lRNa4g08EY6thx7U5tiJUCE2vUvSLbsdtppBfa5cJam5oopYnYBN4nxkIlwcuXH9PL8HwvkgJG60R0JHvIK1tN-izHOUkwYMgBBgzxMJVPhN7roYskeKnF9C_5oX95m4dhuTgOdRtmq18X19VaOdx28rb7_jE4XaDuMTB0uSAQyVTEQZMR2HWIOfN5CwkMQ',
+        errorCbSpy,
+        { id: 123, patronBarcode: 'test', itemBarcode: 'barcode', checkoutProccessed: true },
+        cbSpy
+      );
 
-      return result.should.be.rejectedWith(CancelRequestConsumerError, /the token string parameter is not defined or empty/);
-    });
+      return result.catch(error => {
+        expect(generateErrorResponseObjectStub).to.have.been.called;
 
-    it('should reject the Promise with an error if the token parameter is NOT of type string', () => {
-      const result = ApiHelper.handleCancelItemsDeleteRequests([{}], {});
-
-      return result.should.be.rejectedWith(CancelRequestConsumerError, /the token string parameter is not defined or empty/);
-    });
-
-    it('should reject the Promise with an error if the token parameter is an EMPTY string', () => {
-      const result = ApiHelper.handleCancelItemsDeleteRequests([{}], ' ');
-
-      return result.should.be.rejectedWith(CancelRequestConsumerError, /the token string parameter is not defined or empty/);
-    });
-
-    it('should call the handleBatchAsyncPostRequests when given valid inputs', () => {
-      let handleBatchAsyncPostRequestsStub = sinon.stub(ApiHelper, 'handleBatchAsyncPostRequests');
-
-      ApiHelper.handleCancelItemsDeleteRequests([{}], 'token');
-
-      expect(handleBatchAsyncPostRequestsStub).to.be.called;
-
-      handleBatchAsyncPostRequestsStub.restore();
+        expect(errorCbSpy).to.have.been.calledWith(
+          error,
+          {
+            checkoutProccessed: true,
+            checkinProccessed: false,
+            itemBarcode: 'barcode',
+            patronBarcode: 'test',
+            id: 123
+          },
+          cbSpy
+        );
+      });
     });
   });
-
-  describe('findPatronIdFromBarcode', () => {
-    it('should update the patronId property for a successful call', () => {
-      mock.onGet().reply(200, {id: 11111})
-      let object = {}
-      let promise = ApiHelper.findPatronIdFromBarcode(object, null, null).then(() => object)
-      return promise.should.eventually.have.property('patronId', 11111)
-    });
-    it('should log an error for an unsuccessful call', () => {
-      let loggerStub = sinon.stub(logger, 'error')
-      let object = {}
-      mock.onGet().reply(200, {})
-      let promise = ApiHelper.findPatronIdFromBarcode(object, null, null).then(() => {
-        let val = loggerStub.called
-        loggerStub.restore()
-        return val
-      })
-      return promise.should.eventually.equal(true)
-    });
-    it('should not update patronId property for an unsuccessful call', () => {
-      let object = {}
-      mock.onGet().reply(200, {})
-      let promise = ApiHelper.findPatronIdFromBarcode(object, null, null).then(() => object)
-      return promise.should.eventually.not.have.property('patronId')
-    });
-    it('should not update patronId in case of an error', () => {
-      let object = {}
-      mock.onGet().reply(401, {id: 11111})
-      let promise = ApiHelper.findPatronIdFromBarcode(object, null, null).then(() => object)
-      return promise.should.eventually.not.have.property('patronId')
-    });
-    it('should log an error in case of an error', () => {
-      let loggerStub = sinon.stub(logger, 'error')
-      let object = {}
-      mock.onGet().reply(401, {id: 11111})
-      let promise = ApiHelper.findPatronIdFromBarcode(object, null, null).then(() => {
-        let val = loggerStub.called
-        loggerStub.restore()
-        return val
-      })
-      return promise.should.eventually.equal(true)
-    })
-  });
-
-  describe('findItemIdFromBarcode', () => {
-    it('should update the itemId property for a successful call', () => {
-      mock.onGet().reply(200, {data: [{id: 11111}]})
-      let object = {}
-      let promise = ApiHelper.findItemIdFromBarcode(object, null, null).then(() => object)
-      return promise.should.eventually.have.property('itemId', 11111)
-    });
-    it('should log an error for an unsuccessful call', () => {
-      let loggerStub = sinon.stub(logger, 'error')
-      let object = {}
-      mock.onGet().reply(200, {})
-      let promise = ApiHelper.findItemIdFromBarcode(object, null, null).then(() => {
-        let val = loggerStub.called
-        loggerStub.restore()
-        return val
-      })
-      return promise.should.eventually.equal(true)
-    });
-    it('should not update patronId property for an unsuccessful call', () => {
-      let object = {}
-      mock.onGet().reply(200, {})
-      let promise = ApiHelper.findItemIdFromBarcode(object, null, null).then(() => object)
-      return promise.should.eventually.not.have.property('patronId')
-    });
-    it('should not update patronId in case of an error', () => {
-      let object = {}
-      mock.onGet().reply(401, {data: [{id: 11111}]})
-      let promise = ApiHelper.findItemIdFromBarcode(object, null, null).then(() => object)
-      return promise.should.eventually.not.have.property('itemId')
-    });
-    it('should log an error in case of an error', () => {
-      let loggerStub = sinon.stub(logger, 'error')
-      let object = {}
-      mock.onGet().reply(401, {data: [{id: 11111}]})
-      let promise = ApiHelper.findItemIdFromBarcode(object, null, null).then(() => {
-        let val = loggerStub.called
-        loggerStub.restore()
-        return val
-      })
-      return promise.should.eventually.equal(true)
-    })
-  });
-
-  describe('generateCancelApiModel', () => {
-    it('should update the holdRequestId in case of a successful request', () => {
-      var count = 0;
-      let entries = () => {
-        if (count < 10) {
-          count += 1
-          return [{record: 'https://fakeapiurl.org/11111', id: 'aaaa'}]
-        } else if (count === 10) {
-          count += 1
-          return [{record: 'https://fakeapiurl.org/22222', id: 'bbbbb'}]
-        } else {
-          return []
-        }
-      }
-      let replyMethod = () => {
-        return [200, {
-          entries: entries(),
-          statusCode: 200,
-          debugInfo: ''
-        }
-        ]
-      }
-      mock.onGet().reply(replyMethod)
-      let object = {
-        id: null,
-        patronId: null,
-        itemId: 22222,
-        patronBarcode: null,
-        itemBarcode: null,
-        holdRequestId: null
-      }
-      let promise = ApiHelper
-      .generateCancelApiModel(object, null, 'https://fake.org', ApiHelper.getHoldrequestId, ApiHelper.generateCancelApiModel, ApiHelper.getApiHeaders)
-      .then(() => object)
-      return promise.should.eventually.have.property('holdRequestId', 'bbbbb')
-    });
-    it('should not update the holdRequestId in case of an unsuccessful request', () => {
-      var count = 0;
-      let entries = () => {
-        if (count < 10) {
-          count += 1
-          return [{record: 'https://fakeapiurl.org/11111', id: 'aaaa'}]
-        } else if (count === 10) {
-          count += 1
-          return []
-        } else {
-          return []
-        }
-      }
-      let replyMethod = () => {
-        return [200, {
-          entries: entries(),
-          statusCode: 200,
-          debugInfo: ''
-        }
-        ]
-      }
-      mock.onGet().reply(replyMethod)
-      let object = {
-        id: null,
-        patronId: null,
-        itemId: 22222,
-        patronBarcode: null,
-        itemBarcode: null,
-        holdRequestId: null
-      }
-      let promise = ApiHelper
-      .generateCancelApiModel(object, null, 'https://fake.org', ApiHelper.getHoldrequestId, ApiHelper.generateCancelApiModel, ApiHelper.getApiHeaders)
-      .then(() => object)
-      return promise.should.eventually.have.property('holdRequestId', null)
-    });
-    it('should log an error in case of an error', () => {
-      mock.onGet().reply(401)
-      let object = {
-        id: null,
-        patronId: null,
-        itemId: 22222,
-        patronBarcode: null,
-        itemBarcode: null,
-        holdRequestId: null
-      }
-      let loggerStub = sinon.stub(logger, 'error')
-      let promise = ApiHelper
-      .generateCancelApiModel(object, null, 'https://fake.org', ApiHelper.getHoldrequestId, ApiHelper.generateCancelApiModel, ApiHelper.getApiHeaders)
-      .catch(() => {
-        let val = loggerStub.called
-        loggerStub.restore()
-        return val
-      })
-      return promise.should.eventually.equal(true)
-    })
-  })
 });
