@@ -44,6 +44,7 @@ exports.handleKinesisAsyncProcessing = async function (records, opts, context, c
 
     const processedCheckedOutItems = await ApiHelper.handleCancelItemPostRequests(unprocessedRecords, 'checkout-service', nyplCheckoutRequestApiUrl, Cache.getToken());
     const processedCheckedInItems = await ApiHelper.handleCancelItemPostRequests(processedCheckedOutItems, 'checkin-service', nyplCheckinRequestApiUrl, Cache.getToken());
+    console.log('posting to recap: ', nyplRecapRequestApiUrl)
     const processedItemsToRecap = await ApiHelper.handleCancelItemsPostRequests(processedCheckedInItems, 'recap-service', nyplRecapRequestApiUrl, Cache.getToken());
 
     if (!processedItemsToRecap || !Array.isArray(processedItemsToRecap)) {
