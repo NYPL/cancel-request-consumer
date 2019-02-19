@@ -250,6 +250,7 @@ exports.handler = (event, context, callback) => {
               recapCancelRequestSchema: process.env.RECAP_CANCEL_REQUEST_SCHEMA_NAME,
               nyplCheckinRequestApiUrl: process.env.NYPL_CHECKIN_REQUEST_API_URL,
               nyplCheckoutRequestApiUrl: process.env.NYPL_CHECKOUT_REQUEST_API_URL,
+              nyplRecapRequestApiUrl: process.env.NYPL_RECAP_REQUEST_API_URL,
               cancelRequestResultSchemaName: process.env.CANCEL_REQUEST_RESULT_SCHEMA_NAME,
               cancelRequestResultStreamName: process.env.CANCEL_REQUEST_RESULT_STREAM_NAME,
               oAuthProviderUrl: process.env.OAUTH_PROVIDER_URL,
