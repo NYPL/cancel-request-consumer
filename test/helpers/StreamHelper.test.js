@@ -29,20 +29,20 @@ describe('CancelRequestConsumer Lambda: StreamHelper', () => {
       expect(() => generateStreamModel({ id: 123 })).to.not.throw();
     });
 
-    it('should return a success object if deleted boolean flag is TRUE and no jobId is defined', () => {
-      const result = generateStreamModel({ id: 123, deleted: true });
+    it('should return a success object if checkoutProccessed and checkinProccessed boolean flags are TRUE and no jobId is defined', () => {
+      const result = generateStreamModel({ id: 123, checkinProccessed: true, checkoutProccessed: true });
 
       expect(result).to.deep.equal({ cancelRequestId: 123, jobId: null, success: true, error: null });
     });
 
-    it('should return a success object if deleted flag is TRUE and jobId is defined', () => {
-      const result = generateStreamModel({ id: 123, deleted: true, jobId: 'abc' });
+    it('should return a success object if checkoutProccessed and checkinProccessed boolean flags are TRUE and jobId is defined', () => {
+      const result = generateStreamModel({ id: 123, checkinProccessed: true, checkoutProccessed: true, jobId: 'abc' });
 
       expect(result).to.deep.equal({ cancelRequestId: 123, success: true, error: null, jobId: 'abc' });
     });
 
-    it('should return a failure object if deleted boolean flag is false', () => {
-      const result = generateStreamModel({ id: 123, deleted: false });
+    it('should return a failure object if checkinProccessed boolean flag is false', () => {
+      const result = generateStreamModel({ id: 123, checkinProccessed: false, checkoutProccessed: true });
 
       expect(result).to.deep.equal({
         cancelRequestId: 123,
@@ -55,10 +55,25 @@ describe('CancelRequestConsumer Lambda: StreamHelper', () => {
       });
     });
 
-    it('should return a failure object if deleted boolean flag is false with custom error type and message', () => {
+    it('should return a failure object if checkoutProccessed boolean flag is false', () => {
+      const result = generateStreamModel({ id: 123, checkinProccessed: true, checkoutProccessed: false });
+
+      expect(result).to.deep.equal({
+        cancelRequestId: 123,
+        jobId: null,
+        success: false,
+        error: {
+          type: 'cancel-request-consumer-error',
+          message: 'the checkout and checkin processed failed for Cancel Request Record (123)'
+        }
+      });
+    });
+
+    it('should return a failure object if checkoutProccessed boolean flag is false with custom error type and message', () => {
       const result = generateStreamModel({
         id: 123,
-        deleted: false,
+        checkinProccessed: true,
+        checkoutProccessed: false,
         error: {
           errorType: 'ncip-checkin-error',
           errorMessage: 'Item not found'
