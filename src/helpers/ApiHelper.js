@@ -326,6 +326,7 @@ const ApiHelper = {
     return callback(null, item);
   },
   patchRecapItem (apiUrl, token, errorHandlerFn, item, callback) {
+    console.log('patching: ', apiUrl, item)
     if (item && typeof item === 'object' && item.id) {
       //initialize the boolean flag to false until a successful post updates to true
       item.recapProcessed = false;
