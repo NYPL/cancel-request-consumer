@@ -16,7 +16,6 @@ coverage
 
 # Users Environment Variables
 .lock-wscript
-config/*.env
 
 # Misc
 .DS_Store
