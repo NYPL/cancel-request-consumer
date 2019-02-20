@@ -65,7 +65,7 @@ exports.handleKinesisAsyncProcessing = async function (records, opts, context, c
 
     if (e.name === 'CancelRequestConsumerError') {
       if (e.type === 'filtered-records-array-empty') {
-        logger.info('The CancelRequestConsumer Lambda has successfully processed all Cancel Request Items; no fatal errors have occured');
+        logger.info('The CancelRequestConsumer Lambda has no records to process; all processed records were filtered out resulting in an empty array; no fatal errors have occured');
         return callback(null, 'The CancelRequestConsumer Lambda has no records to process; all processed records were filtered out resulting in an empty array; no fatal errors have occured');
       }
 
