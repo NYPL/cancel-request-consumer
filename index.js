@@ -21,10 +21,7 @@ exports.handleKinesisAsyncProcessing = async function (records, opts, context, c
       recapCancelRequestSchema,
       nyplCheckinRequestApiUrl,
       nyplCheckoutRequestApiUrl,
-<<<<<<< HEAD
       nyplRecapRequestApiUrl,
-=======
->>>>>>> master
       cancelRequestResultSchemaName,
       cancelRequestResultStreamName
     } = opts;
@@ -47,20 +44,12 @@ exports.handleKinesisAsyncProcessing = async function (records, opts, context, c
 
     const processedCheckedOutItems = await ApiHelper.handleCancelItemPostRequests(unprocessedRecords, 'checkout-service', nyplCheckoutRequestApiUrl, Cache.getToken());
     const processedCheckedInItems = await ApiHelper.handleCancelItemPostRequests(processedCheckedOutItems, 'checkin-service', nyplCheckinRequestApiUrl, Cache.getToken());
-<<<<<<< HEAD
     console.log('posting to recap: ', nyplRecapRequestApiUrl)
     const processedItemsToRecap = await ApiHelper.handleCancelItemPostRequests(processedCheckedInItems, 'recap-service', nyplRecapRequestApiUrl, Cache.getToken());
 
     if (!processedItemsToRecap || !Array.isArray(processedItemsToRecap)) {
       logger.error('The CancelRequestConsumer Lambda failed to process all Cancel Request Items', { processedItemsToRecap: processedItemsToRecap });
       return callback('The CancelRequestConsumer Lambda failed to process all Cancel Request Items');
-=======
-    const proccessedItemsToStream = await postItemsToStream(processedCheckedInItems, cancelRequestResultStreamName, cancelRequestResultSchemaName, streamsClient);
-
-    if (!proccessedItemsToStream || !Array.isArray(proccessedItemsToStream)) {
-      logger.error('The CancelRequestConsumer Lambda failed to proccess all Cancel Request Items', { proccessedItemsToStream: proccessedItemsToStream });
-      return callback('The CancelRequestConsumer Lambda failed to proccess all Cancel Request Items');
->>>>>>> master
     }
 
     logger.info('The CancelRequestConsumer Lambda has successfully processed all Cancel Request Items; no fatal errors have occured');
