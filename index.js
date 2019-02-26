@@ -21,6 +21,7 @@ exports.handleKinesisAsyncProcessing = async function (records, opts, context, c
       recapCancelRequestSchema,
       nyplCheckinRequestApiUrl,
       nyplCheckoutRequestApiUrl,
+      nyplRecapRequestApiUrl,
       cancelRequestResultSchemaName,
       cancelRequestResultStreamName
     } = opts;
@@ -43,16 +44,20 @@ exports.handleKinesisAsyncProcessing = async function (records, opts, context, c
 
     const processedCheckedOutItems = await ApiHelper.handleCancelItemPostRequests(unprocessedRecords, 'checkout-service', nyplCheckoutRequestApiUrl, Cache.getToken());
     const processedCheckedInItems = await ApiHelper.handleCancelItemPostRequests(processedCheckedOutItems, 'checkin-service', nyplCheckinRequestApiUrl, Cache.getToken());
-    const proccessedItemsToStream = await postItemsToStream(processedCheckedInItems, cancelRequestResultStreamName, cancelRequestResultSchemaName, streamsClient);
+    console.log('posting to recap: ', nyplRecapRequestApiUrl)
+    const processedItemsToRecap = await ApiHelper.handleCancelItemPostRequests(processedCheckedInItems, 'recap-service', nyplRecapRequestApiUrl, Cache.getToken());
 
-    if (!proccessedItemsToStream || !Array.isArray(proccessedItemsToStream)) {
-      logger.error('The CancelRequestConsumer Lambda failed to proccess all Cancel Request Items', { proccessedItemsToStream: proccessedItemsToStream });
-      return callback('The CancelRequestConsumer Lambda failed to proccess all Cancel Request Items');
+    if (!processedItemsToRecap || !Array.isArray(processedItemsToRecap)) {
+      logger.error('The CancelRequestConsumer Lambda failed to process all Cancel Request Items', { processedItemsToRecap: processedItemsToRecap });
+      return callback('The CancelRequestConsumer Lambda failed to process all Cancel Request Items');
     }
 
     logger.info('The CancelRequestConsumer Lambda has successfully processed all Cancel Request Items; no fatal errors have occured');
     return callback(null, 'The CancelRequestConsumer Lambda has successfully processed all Cancel Request Items; no fatal errors have occured');
   } catch (e) {
+
+    console.log(e.message)
+
     if (e.name === 'AvroValidationError') {
       logger.error('A fatal/non-recoverable AvroValidationError occured which prohibits decoding the kinesis stream; the CancelRequestConsumer Lambda will NOT restart', { debugInfo: e });
       return false;
@@ -60,8 +65,8 @@ exports.handleKinesisAsyncProcessing = async function (records, opts, context, c
 
     if (e.name === 'CancelRequestConsumerError') {
       if (e.type === 'filtered-records-array-empty') {
-        logger.info('The CancelRequestConsumer Lambda has successfully processed all Cancel Request Items; no fatal errors have occured');
-        return callback(null, 'The CancelRequestConsumer Lambda has no records to proccess; all processed records were filtered out resulting in an empty array; no fatal errors have occured');
+        logger.info('The CancelRequestConsumer Lambda has no records to process; all processed records were filtered out resulting in an empty array; no fatal errors have occured');
+        return callback(null, 'The CancelRequestConsumer Lambda has no records to process; all processed records were filtered out resulting in an empty array; no fatal errors have occured');
       }
 
       // Recoverable Error: Reset the access_token
@@ -86,6 +91,12 @@ exports.handleKinesisAsyncProcessing = async function (records, opts, context, c
       // Recoverable Error: Checkout Service may be temporarily down; retriable error.
       if (e.type === 'checkin-service-error' && (!e.statusCode || e.statusCode >= 500)) {
         logger.notice('Restarting the CancelRequestConsumer Lambda; a 5xx or a timeout error was caught from the Checkin Service', { debugInfo: e });
+        return callback(e.message);
+      }
+
+      // Recoverable Error: Recap Service may be temporarily down; retriable error.
+      if (e.type === 'recap-service-error' && (!e.statusCode || e.statusCode >= 500)) {
+        logger.notice('Restarting the CancelRequestConsumer Lambda; a 5xx or a timeout error was caught from the Recap Service', { debugInfo: e });
         return callback(e.message);
       }
 
@@ -198,6 +209,7 @@ exports.kinesisHandler = (records, opts, context, callback) => {
 };
 
 exports.handler = (event, context, callback) => {
+  console.log(JSON.stringify(event));
   if (event && Array.isArray(event.Records) && event.Records.length > 0) {
     const record = event.Records[0];
     // Handle Kinesis Stream
@@ -217,6 +229,7 @@ exports.handler = (event, context, callback) => {
             recapCancelRequestSchema: process.env.RECAP_CANCEL_REQUEST_SCHEMA_NAME,
             nyplCheckinRequestApiUrl: process.env.NYPL_CHECKIN_REQUEST_API_URL,
             nyplCheckoutRequestApiUrl: process.env.NYPL_CHECKOUT_REQUEST_API_URL,
+            nyplRecapRequestApiUrl: process.env.NYPL_RECAP_REQUEST_API_URL,
             cancelRequestResultSchemaName: process.env.CANCEL_REQUEST_RESULT_SCHEMA_NAME,
             cancelRequestResultStreamName: process.env.CANCEL_REQUEST_RESULT_STREAM_NAME
           },
@@ -241,6 +254,7 @@ exports.handler = (event, context, callback) => {
               recapCancelRequestSchema: process.env.RECAP_CANCEL_REQUEST_SCHEMA_NAME,
               nyplCheckinRequestApiUrl: process.env.NYPL_CHECKIN_REQUEST_API_URL,
               nyplCheckoutRequestApiUrl: process.env.NYPL_CHECKOUT_REQUEST_API_URL,
+              nyplRecapRequestApiUrl: process.env.NYPL_RECAP_REQUEST_API_URL,
               cancelRequestResultSchemaName: process.env.CANCEL_REQUEST_RESULT_SCHEMA_NAME,
               cancelRequestResultStreamName: process.env.CANCEL_REQUEST_RESULT_STREAM_NAME,
               oAuthProviderUrl: process.env.OAUTH_PROVIDER_URL,
