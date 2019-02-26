@@ -262,6 +262,7 @@ const ApiHelper = {
     });
   },
   postCheckOutItem (apiUrl, token, errorHandlerFn, item, callback) {
+    console.log('checking out');
     if (item && typeof item === 'object' && item.id) {
       // initialize the boolean flag to false until a successful post updates to true
       item.checkoutProccessed = false;
@@ -300,6 +301,7 @@ const ApiHelper = {
     return callback(null);
   },
   postCheckInItem (apiUrl, token, errorHandlerFn, item, callback) {
+    console.log('checking in');
     // initialize the boolean flag to false until a successful post updates to true
     item.checkinProccessed = false;
 

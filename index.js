@@ -209,6 +209,7 @@ exports.kinesisHandler = (records, opts, context, callback) => {
 };
 
 exports.handler = (event, context, callback) => {
+  console.log(JSON.stringify(event));
   if (event && Array.isArray(event.Records) && event.Records.length > 0) {
     const record = event.Records[0];
     // Handle Kinesis Stream
