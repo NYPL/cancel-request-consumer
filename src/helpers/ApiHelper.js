@@ -239,16 +239,10 @@ const ApiHelper = {
     }
 
     if (serviceType === 'recap-service') {
-      try {
-
-        return this.handleBatchAsyncPostRequests(
-          items,
-          ApiHelper.patchRecapItem.bind(this, apiUrl, token, this.handleApiErrors)
-        );
-      }
-      catch(err) {
-        console.log(250, err.message)
-      }
+      return this.handleBatchAsyncPostRequests(
+        items,
+        ApiHelper.patchRecapItem.bind(this, apiUrl, token, this.handleApiErrors)
+      );
     }
   },
   handleBatchAsyncPostRequests (items, processingFn) {
@@ -262,7 +256,7 @@ const ApiHelper = {
     });
   },
   postCheckOutItem (apiUrl, token, errorHandlerFn, item, callback) {
-    console.log('checking out');
+    logger.info('checking out');
     if (item && typeof item === 'object' && item.id) {
       // initialize the boolean flag to false until a successful post updates to true
       item.checkoutProccessed = false;
@@ -301,7 +295,7 @@ const ApiHelper = {
     return callback(null);
   },
   postCheckInItem (apiUrl, token, errorHandlerFn, item, callback) {
-    console.log('checking in');
+    logger.info('checking in');
     // initialize the boolean flag to false until a successful post updates to true
     item.checkinProccessed = false;
 
@@ -334,7 +328,7 @@ const ApiHelper = {
     return callback(null, item);
   },
   patchRecapItem (apiUrl, token, errorHandlerFn, item, callback) {
-    console.log('patching: ', apiUrl, item)
+    logger.info(`patching: apiUrl: ${apiUrl}, item: ${item}`)
     if (item && typeof item === 'object' && item.id) {
       //initialize the boolean flag to false until a successful post updates to true
       item.recapProcessed = false;

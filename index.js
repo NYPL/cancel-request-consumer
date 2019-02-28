@@ -44,7 +44,7 @@ exports.handleKinesisAsyncProcessing = async function (records, opts, context, c
 
     const processedCheckedOutItems = await ApiHelper.handleCancelItemPostRequests(unprocessedRecords, 'checkout-service', nyplCheckoutRequestApiUrl, Cache.getToken());
     const processedCheckedInItems = await ApiHelper.handleCancelItemPostRequests(processedCheckedOutItems, 'checkin-service', nyplCheckinRequestApiUrl, Cache.getToken());
-    console.log('posting to recap: ', nyplRecapRequestApiUrl)
+    logger.info(`posting to recap: ${nyplRecapRequestApiUrl}`)
     const processedItemsToRecap = await ApiHelper.handleCancelItemPostRequests(processedCheckedInItems, 'recap-service', nyplRecapRequestApiUrl, Cache.getToken());
 
     if (!processedItemsToRecap || !Array.isArray(processedItemsToRecap)) {
@@ -55,8 +55,6 @@ exports.handleKinesisAsyncProcessing = async function (records, opts, context, c
     logger.info('The CancelRequestConsumer Lambda has successfully processed all Cancel Request Items; no fatal errors have occured');
     return callback(null, 'The CancelRequestConsumer Lambda has successfully processed all Cancel Request Items; no fatal errors have occured');
   } catch (e) {
-
-    console.log(e.message)
 
     if (e.name === 'AvroValidationError') {
       logger.error('A fatal/non-recoverable AvroValidationError occured which prohibits decoding the kinesis stream; the CancelRequestConsumer Lambda will NOT restart', { debugInfo: e });
@@ -209,7 +207,7 @@ exports.kinesisHandler = (records, opts, context, callback) => {
 };
 
 exports.handler = (event, context, callback) => {
-  console.log(JSON.stringify(event));
+  logger.info(`Processing Event: ${JSON.stringify(event)}`);
   if (event && Array.isArray(event.Records) && event.Records.length > 0) {
     const record = event.Records[0];
     // Handle Kinesis Stream
