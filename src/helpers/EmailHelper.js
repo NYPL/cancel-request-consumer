@@ -19,7 +19,7 @@ const params = {
       Data: "Success!"
     },
   },
-  Source: 'danielappel@nypl.org'
+  Source: 'researchrequests@nypl.org'
 }
 
 const sendEmail = () => {
