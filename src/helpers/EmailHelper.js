@@ -23,7 +23,7 @@ const params = {
 }
 
 const sendEmail = () => {
-  const sendPromise = new AWS.SES({apiVersion: 2010-12-01}).sendEmail(params).promise();
+  const sendPromise = new AWS.SES({apiVersion: '2010-12-01'}).sendEmail(params).promise();
   sendPromise.then(
     function(data){
       console.log(data.MessageId);
