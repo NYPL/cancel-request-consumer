@@ -15,7 +15,7 @@ const params = {
       }
     },
     Subject: {
-      Charset: "UTF-9",
+      Charset: "UTF-8",
       Data: "Success!"
     },
   },
