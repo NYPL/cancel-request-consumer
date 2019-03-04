@@ -17,6 +17,8 @@ const getOauthConfig = function (clientId, clientSecret, scope, grantType = 'cli
     throw new CancelRequestConsumerError('the scope parameter is not defined or invalid; must be of type string and not empty');
   }
 
+  console.log('scope: ', scope)
+
   return {
     client_id: clientId,
     client_secret: clientSecret,
