@@ -48,7 +48,7 @@ const ApiHelper = {
       cancelRequestId: id,
       jobId,
       itemBarcode,
-      owningInstitutionId
+      owningInstitutionId,
     };
   },
   generateErrorResponseObject (obj) {
@@ -237,6 +237,13 @@ const ApiHelper = {
         ApiHelper.postCheckOutItem.bind(this, apiUrl, token, this.handleApiErrors)
       );
     }
+
+    if (serviceType === 'recap-service') {
+      return this.handleBatchAsyncPostRequests(
+        items,
+        ApiHelper.patchRecapItem.bind(this, apiUrl, token, this.handleApiErrors)
+      );
+    }
   },
   handleBatchAsyncPostRequests (items, processingFn) {
     return new Promise((resolve, reject) => {
@@ -249,6 +256,7 @@ const ApiHelper = {
     });
   },
   postCheckOutItem (apiUrl, token, errorHandlerFn, item, callback) {
+    logger.info(`checking out ${item}`);
     if (item && typeof item === 'object' && item.id) {
       // initialize the boolean flag to false until a successful post updates to true
       item.checkoutProccessed = false;
@@ -287,6 +295,7 @@ const ApiHelper = {
     return callback(null);
   },
   postCheckInItem (apiUrl, token, errorHandlerFn, item, callback) {
+    logger.info(`checking in ${item}`);
     // initialize the boolean flag to false until a successful post updates to true
     item.checkinProccessed = false;
 
@@ -317,6 +326,45 @@ const ApiHelper = {
     // Skip over item since itemBarcode is not defined and checkoutProccessed is false
     logger.info(`Unable to sent POST request to checkin-service for Cancel Request Record (${item.id}); checkoutProccessed is false which indicates this item was not checked out`);
     return callback(null, item);
+  },
+  patchRecapItem (apiUrl, token, errorHandlerFn, item, callback) {
+    logger.info(`patching: apiUrl: ${apiUrl}, item: ${item}`)
+    if (item && typeof item === 'object' && item.id) {
+      //initialize the boolean flag to false until a successful post updates to true
+      item.recapProcessed = false;
+
+      if (item.checkoutProccessed === true && item.checkinProccessed === true) {
+        logger.info(`Posting Cancel Request Record (${item.id}) to Recap`);
+        const recapApiModel = {
+          success: true,
+          processed: true,
+        }
+
+        return axios.patch(`${apiUrl}/${item.id}`, recapApiModel, this.getApiHeaders(token))
+        .then(result => {
+          let processedItem = item;
+          processedItem.recapApiResponse = this.generateSuccessfulResponseObject(result);
+
+          if (this.isItemPostSuccessful(result, 'success')) {
+            logger.info(`Successfully posted Cancel Request Record (${item.id}) to Recap; assigned response to record`);
+            processedItem = Object.assign(processedItem, { recapProcessed: true}, { success: true});
+          }
+
+          return callback(null, processedItem);
+        })
+        .catch(error => {
+          const errorResponse = this.generateErrorResponseObject(error);
+          // Assign the error clean error object to the item
+          item.error = errorResponse;
+          // Handle retries or fatal errors by error status code
+          return errorHandlerFn(errorResponse, 'recap-service', item, callback);
+        })
+      }
+
+      // Skip item if checkoutProccessed or checkinProccessed is not true
+      logger.info(`Will not patch Cancel Request Record: (${item.id}) in Recap. checkoutProccessed is: ${item.checkoutProccessed} and checkinProccessed is ${item.checkinProccessed}`);
+      return callback(null, item);
+    }
   }
 };
 
