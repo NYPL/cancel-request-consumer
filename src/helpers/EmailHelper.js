@@ -55,7 +55,7 @@ const sendEmailForItem = (patronEmail) => {
 
 
 const processItemAndEmail = (token) => (item) => {
-  console.log(item.patronBarcode, item.itemBarcode, token);
+  logger.info('Processing Email for: ', item.patronBarcode, item.itemBarcode, token);
   getPatronEmail(item.patronBarcode, token)
     .then(email => sendEmailForItem(email))
 }
