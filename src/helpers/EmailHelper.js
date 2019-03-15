@@ -28,11 +28,11 @@ const params = (recipientEmail) => {
   }
 }
 
-const getPatronEmail = (barcode, token) => {
+const getPatronInfo = (barcode, token) => {
   let config = ApiHelper.getApiHeaders(token);
   config.params = {barcode: barcode};
   return axios.get('https://qa-platform.nypl.org/api/v0.1/patrons', config)
-    .then(result => result.data.data[0].emails[0])
+    .then(result => {console.log(result.data.data),result.data.data[0].emails[0]})
     .catch((error) => {
       logger.error('Error retrieving email');
       logger.error(error.message);
@@ -56,7 +56,7 @@ const sendEmailForItem = (patronEmail) => {
 
 const processItemAndEmail = (token) => (item) => {
   logger.info('Processing Email for: ', item.patronBarcode, item.itemBarcode, token);
-  getPatronEmail(item.patronBarcode, token)
+  getPatronInfo(item.patronBarcode, token)
     .then(email => sendEmailForItem(email))
 }
 
