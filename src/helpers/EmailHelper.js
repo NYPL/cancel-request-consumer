@@ -10,7 +10,7 @@ function EmailHelper() {
     return {
       Destination: {
         ToAddresses: [
-          this.recipientEmail
+          this.email
         ]
       },
       Message: {
@@ -110,19 +110,12 @@ function EmailHelper() {
 
 const processItemAndEmail = (token) => (item) => {
   logger.info('Processing Email for: ', item.patronBarcode, item.itemBarcode, token);
-  try {
-    const helper = new EmailHelper();
-    helper.getPatronInfo(item.patronBarcode, token)
-      .then(() => helper.getItemInfo(item.itemBarcode, token))
-      .then(() => helper.getBibInfo(token))
-      .then(logger.info("Sending email: ", JSON.stringify(helper.params())))
-      .catch(e => console.log(e))
-    }
-
-    catch(err) {
-        console.log(err.message)
-    }
-      // .then(email => sendEmailForItem(email))
+  const helper = new EmailHelper();
+  helper.getPatronInfo(item.patronBarcode, token)
+    .then(() => helper.getItemInfo(item.itemBarcode, token))
+    .then(() => helper.getBibInfo(token))
+    .then(() => {logger.info("Sending email: ", JSON.stringify(helper.params()))})
+    .catch(e => logger.error("Error processing email: ", e.message))
 }
 
 const sendEmail = (processedItemsToRecap, token) => {
