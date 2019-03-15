@@ -30,25 +30,17 @@ function EmailHelper(token) {
     }
   }
 
-  this.getInfo = function(type) {
+  this.getInfo = function(type, barcode = "") {
     const url = `${process.env.NYPL_DATA_API_BASE_URL}${type.toLowerCase()}s`
-    const infoFunction = function(barcode = "") {
-      console.log(url);
-      return axios.get(url, this[`set${type}Config`](barcode, this.token))
-      .then((result) => {
-        this[`set${type}Info`](result.data.data);
-      })
-      .catch((error) => {
-        logger.error(`Error retrieving ${type}:`, error.message);
-      })
-    }
-    return infoFunction.bind(this);
+    logger.info("Posting to: ", url);
+    return axios.get(url, this[`set${type}Config`](barcode, this.token))
+    .then((result) => {
+      this[`set${type}Info`](result.data.data);
+    })
+    .catch((error) => {
+      logger.error(`Error retrieving ${type}:`, error.message);
+    })
   }
-
-  this.getPatronInfo = this.getInfo('Patron');
-  this.getItemInfo = this.getInfo('Item');
-  this.getBibInfo = this.getInfo('Bib');
-
 
   this.setPatronConfig = function(barcode, token) {
     let config = ApiHelper.getApiHeaders(token);
@@ -112,9 +104,9 @@ const processItemAndEmail = (token) => (item) => {
   logger.info('Processing Email for: ', item.patronBarcode, item.itemBarcode, token);
   const helper = new EmailHelper(token);
   try {
-  helper.getPatronInfo(item.patronBarcode)
-    .then(() => helper.getItemInfo(item.itemBarcode))
-    .then(() => helper.getBibInfo())
+  helper.getInfo("Patron", item.patronBarcode)
+    .then(() => helper.getInfo("Item", item.itemBarcode))
+    .then(() => helper.getInfo("Bib"))
     .then(() => {logger.info("Sending email: ", JSON.stringify(helper.params()))})
     .catch(e => logger.error("Error processing email: ", e.message))
   }
