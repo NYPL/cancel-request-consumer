@@ -30,8 +30,10 @@ function EmailHelper(token) {
     }
   }
 
-  this.getInfo = function(url, type) {
+  this.getInfo = function(type) {
+    const url = `${process.env.NYPL_DATA_API_BASE_URL}${type.toLowerCase()}s`
     const infoFunction = function(barcode = "") {
+      console.log(url);
       return axios.get(url, this[`set${type}Config`](barcode, this.token))
       .then((result) => {
         this[`set${type}Info`](result.data.data);
@@ -43,9 +45,9 @@ function EmailHelper(token) {
     return infoFunction.bind(this);
   }
 
-  this.getPatronInfo = this.getInfo('https://qa-platform.nypl.org/api/v0.1/patrons', 'Patron');
-  this.getItemInfo = this.getInfo('https://qa-platform.nypl.org/api/v0.1/items', 'Item');
-  this.getBibInfo = this.getInfo('https://qa-platform.nypl.org/api/v0.1/bibs', 'Bib');
+  this.getPatronInfo = this.getInfo('Patron');
+  this.getItemInfo = this.getInfo('Item');
+  this.getBibInfo = this.getInfo('Bib');
 
 
   this.setPatronConfig = function(barcode, token) {
