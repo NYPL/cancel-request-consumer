@@ -5,7 +5,8 @@ import ApiHelper from './ApiHelper';
 const AWS = require('aws-sdk');
 AWS.config.update({region: 'us-east-1'});
 
-function EmailHelper() {
+function EmailHelper(token) {
+  this.token = token;
   this.params = function () {
     return {
       Destination: {
@@ -29,17 +30,25 @@ function EmailHelper() {
     }
   }
 
-  this.getPatronInfo = function(barcode, token) {
-    return axios.get('https://qa-platform.nypl.org/api/v0.1/patrons', this.patronConfig(barcode, token))
-    .then((result) => {
-      this.setPatronInfo(result.data.data);
-    })
-    .catch((error) => {
-      logger.error('Error retrieving patron:', error.message);
-    })
+  this.getInfo = function(url, type) {
+    const infoFunction = function(barcode = "") {
+      return axios.get(url, this[`set${type}Config`](barcode, this.token))
+      .then((result) => {
+        this[`set${type}Info`](result.data.data);
+      })
+      .catch((error) => {
+        logger.error(`Error retrieving ${type}:`, error.message);
+      })
+    }
+    return infoFunction.bind(this);
   }
 
-  this.patronConfig = function(barcode, token) {
+  this.getPatronInfo = this.getInfo('https://qa-platform.nypl.org/api/v0.1/patrons', 'Patron');
+  this.getItemInfo = this.getInfo('https://qa-platform.nypl.org/api/v0.1/items', 'Item');
+  this.getBibInfo = this.getInfo('https://qa-platform.nypl.org/api/v0.1/bibs', 'Bib');
+
+
+  this.setPatronConfig = function(barcode, token) {
     let config = ApiHelper.getApiHeaders(token);
     config.params = {barcode: barcode};
     logger.info("Getting patron info for: ", barcode)
@@ -52,17 +61,7 @@ function EmailHelper() {
     logger.info("Retrieved emails: ", this.emails, "Retrieved names: ", this.names);
   }
 
-  this.getItemInfo = function(barcode, token) {
-      return axios.get('https://qa-platform.nypl.org/api/v0.1/items', this.itemConfig(barcode, token))
-      .then((result) => {
-        this.setItemInfo(result.data.data);
-      })
-      .catch((error) => {
-        logger.error('Error retrieving item: ', error.message);
-      })
-  }
-
-  this.itemConfig = function(barcode, token) {
+  this.setItemConfig = function(barcode, token) {
     let config = ApiHelper.getApiHeaders(token);
     config.params = {barcode: barcode};
     logger.info("Getting item info for: ", barcode)
@@ -75,17 +74,7 @@ function EmailHelper() {
     logger.info("Retrieved bibIds: ", this.bibIds, "Retrieved barcodes: ", this.barcodes);
   }
 
-  this.getBibInfo = function(token) {
-    return axios.get('https://qa-platform.nypl.org/api/v0.1/bibs', this.bibConfig("", token))
-    .then((result) => {
-      this.setBibInfo(result.data.data);
-    })
-    .catch((error) => {
-      logger.error('Error retrieving bib: ', error.message);
-    })
-  }
-
-  this.bibConfig = function(barcode, token) {
+  this.setBibConfig = function(barcode, token) {
     const id = this.bibIds.join(",");
     let config = ApiHelper.getApiHeaders(token);
     config.params = {id: id};
@@ -119,11 +108,11 @@ function EmailHelper() {
 
 const processItemAndEmail = (token) => (item) => {
   logger.info('Processing Email for: ', item.patronBarcode, item.itemBarcode, token);
-  const helper = new EmailHelper();
+  const helper = new EmailHelper(token);
   try {
-  helper.getPatronInfo(item.patronBarcode, token)
-    .then(() => helper.getItemInfo(item.itemBarcode, token))
-    .then(() => helper.getBibInfo(token))
+  helper.getPatronInfo(item.patronBarcode)
+    .then(() => helper.getItemInfo(item.itemBarcode))
+    .then(() => helper.getBibInfo())
     .then(() => {logger.info("Sending email: ", JSON.stringify(helper.params()))})
     .catch(e => logger.error("Error processing email: ", e.message))
   }
