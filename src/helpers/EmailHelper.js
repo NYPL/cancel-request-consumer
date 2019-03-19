@@ -16,14 +16,32 @@ function EmailHelper(token) {
       },
       Message: {
         Body: {
-          Text: {
+          Html: {
             Charset: "UTF-8",
-            Data: `Author: ${this.authors},Title: ${this.titles}, Patron: ${this.names[0]}, Barcode: ${this.barcode}`
+            Data: `
+            <!DOCTYPE html>
+            <html>
+            <body>
+              Dear ${this.names[0]},
+              <br>
+              Your request for the following item has been cancelled:
+              <br>
+              Title: ${this.titles[0]}
+              <br>
+              Author: ${this.authors[0]}
+              <br>
+              Barcode: ${this.barcode}
+              <br>
+              <br>
+              If this cancellation request was made in error, <a href="https://gethelp.nypl.org/customer/portal/emails/new">email us</a> or call 917-ASK-NYPL (917-275-6975).
+            </body>
+            </html>`
+            // Data: `Author: ${this.authors},Title: ${this.titles}, Patron: ${this.names[0]}, Barcode: ${this.barcode}`
           }
         },
         Subject: {
           Charset: "UTF-8",
-          Data: "Success with params!"
+          Data: "NYPL Request Status Update"
         },
       },
       Source: 'researchrequests@nypl.org'
@@ -77,13 +95,15 @@ function EmailHelper(token) {
   }
 
   this.setBibInfo = function(data) {
-    this.authors = data.map(bib => bib.author).join(",");
-    this.titles = data.map(bib => bib.title).join(",");
+    this.authors = data.map(bib => bib.author);
+    this.titles = data.map(bib => bib.title);
     logger.info("Retrieved authors and titles: ", this.authors, this.titles);
   }
 
-  const sendEmailForItem = (patronEmail) => {
-    const sendPromise = new AWS.SES({apiVersion: '2010-12-01'}).sendEmail(params(patronEmail)).promise();
+  this.sendEmailForItem = function() {
+    let params = this.params();
+    logger.info(`Sending email: ${JSON.stringify(params, null, 2)}`)
+    const sendPromise = new AWS.SES({apiVersion: '2010-12-01'}).sendEmail(params).promise();
     sendPromise.then(
       function(data){
         logger.info(data.MessageId);
@@ -107,7 +127,7 @@ const processItemAndEmail = (token) => (item) => {
   helper.getInfo("Patron", item.patronBarcode)
     .then(() => helper.getInfo("Item", item.itemBarcode))
     .then(() => helper.getInfo("Bib"))
-    .then(() => {logger.info("Sending email: ", JSON.stringify(helper.params()))})
+    .then(() => helper.sendEmailForItem())
     .catch(e => logger.error("Error processing email: ", e.message))
   }
   catch(err) {
