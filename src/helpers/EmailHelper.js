@@ -26,11 +26,11 @@ function EmailHelper(token) {
               <br>
               Your request for the following item has been cancelled:
               <br>
-              Title: ${this.titles[0]}
+              <b>Title</b>: ${this.titles[0]}
               <br>
-              Author: ${this.authors[0]}
+              <b>Author</b>: ${this.authors[0]}
               <br>
-              Barcode: ${this.barcode}
+              <b>Barcode</b>: ${this.barcode}
               <br>
               <br>
               If this cancellation request was made in error, <a href="https://gethelp.nypl.org/customer/portal/emails/new">email us</a> or call 917-ASK-NYPL (917-275-6975).
