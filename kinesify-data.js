@@ -1,6 +1,100 @@
-const avro = require('avsc');
-const schema = '{"name":"RecapCancelHoldRequest","type":"record","fields":[{"name":"id","type":"int"},{"name":"jobId","type":["null","string"]},{"name":"trackingId","type":["null","string"]},{"name":"patronBarcode","type":["null","string"]},{"name":"itemBarcode","type":["null","string"]},{"name":"owningInstitutionId","type":["null","string"]},{"name":"processed","type":"boolean"},{"name":"success","type":"boolean"},{"name":"createdDate","type":["null","string"]},{"name":"updatedDate","type":["null","string"]}]}';
-record = {id: 716, jobId: '9a6fbbe9-bd10-4067-9fea-a0838de6c527', trackingId: '715', patronBarcode: '23333090797927', itemBarcode: "33433038947945", owningInstitutionId: 'NYPL', processed: false, success: false, createdDate: '2017-10-04T16:41:53-04:00', updatedDate: null}
-let avroType = avro.parse(schema);
-let buf = avroType.toBuffer(record);
-console.log(buf.toString('base64'));
+// /**
+//  * Usage:
+//  *   node avro-decode --schema SCHEMANAME --value VALUE
+//  *
+//  * Example:
+//  *   node avro-decode.js --schema SierraBibRetrievalRequest --value EDEyMjg5NzE1
+//  */
+// const NyplClient = require('@nypl/nypl-data-api-client')
+// const dataApiClient = new NyplClient({ base_url: 'http://platform.nypl.org/api/v0.1/' })
+//
+// // const argv = require('minimist')(process.argv.slice(2))
+// const schemaName = "RecapCancelHoldRequest"
+//
+// dataApiClient.get(`current-schemas/${schemaName}`, { authenticate: false }).then((resp) => {
+//   let schema = resp.data
+//   var avroType = require('avsc').parse(JSON.parse(schema.schema))
+//
+//   // Decode avro encoded data
+//   const buf = Buffer.from(argv.value, 'base64')
+//   const decoded = avroType.fromBuffer(buf)
+//
+//   console.log('Decoded: ', decoded)
+// })
+
+
+// Usage:
+//  The following command will take unencoded json, encode it with avro schema, encode it with base64, and put in Kinesis format.
+//    node kinesify-data.js event.unencoded.sierra_bib_post_request.json event.json https://platform.nypl.org/api/v0.1/current-schemas/BibPostRequest
+
+const args = process.argv.slice(2)
+const avro = require('avsc')
+const fs = require('fs')
+const request = require('request')
+
+// config
+const infile = args[0]
+const outfile = args[1]
+const schemaUrl = args[2]
+
+function onSchemaLoad(schema){
+
+  // initialize avro schema
+  var avroType = avro.parse(schema)
+
+  // read unencoded data
+  var unencodedData = JSON.parse(fs.readFileSync(infile, 'utf8'))
+
+  // encode data and put in kinesis format
+  var kinesisEncodedData = unencodedData.Records
+    .map(function(record){
+      return kinesify(record, avroType)
+    });
+
+  // stringify and write to file
+  var json = JSON.stringify({"Records": kinesisEncodedData}, null, 2)
+  fs.writeFile(outfile, json, 'utf8', function(err, data){
+    if (err) {
+      console.log('Write error:', err)
+
+    } else {
+      console.log('Successfully wrote data to file')
+    }
+  });
+}
+
+function kinesify(record, avroType){
+  // encode avro
+  var buf = avroType.toBuffer(record);
+  // encode base64
+  var encoded = buf.toString('base64');
+  // kinesis format
+  return {
+    "kinesis": {
+      "kinesisSchemaVersion": "1.0",
+      "partitionKey": "s1",
+      "sequenceNumber": "00000000000000000000000000000000000000000000000000000001",
+      "data": encoded,
+      "approximateArrivalTimestamp": 1428537600
+    },
+    "eventSource": "aws:kinesis",
+    "eventVersion": "1.0",
+    "eventID": "shardId-000000000000:00000000000000000000000000000000000000000000000000000001",
+    "eventName": "aws:kinesis:record",
+    "invokeIdentityArn": "arn:aws:iam::EXAMPLE",
+    "awsRegion": "us-east-1",
+    "eventSourceARN": "arn:aws:kinesis:EXAMPLE"
+  };
+}
+
+var options = {
+  uri: schemaUrl,
+  json: true
+};
+request(options, function(error, resp, body){
+  if (body.data && body.data.schema) {
+    console.log('Loaded schema')
+    var schema = JSON.parse(body.data.schema)
+    onSchemaLoad(schema)
+  }
+});

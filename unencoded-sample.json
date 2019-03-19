@@ -1,0 +1,15 @@
+{
+  "Records": [
+    {   "id": 1,
+        "jobId": "9625bbce8152a43f",
+        "trackingId": "1234",
+        "patronBarcode": "23333107988055",
+        "itemBarcode": "33333006077404",
+        "owningInstitutionId": "NYPL",
+        "processed": false,
+        "success": false,
+        "createdDate": "2018-10-09T13:40:37-04:00",
+        "updatedDate": null
+      }
+  ]
+}

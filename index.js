@@ -1,7 +1,7 @@
 /* eslint-disable semi */
 import NyplStreamsClient from '@nypl/nypl-streams-client';
 import LambdaEnvVars from 'lambda-env-vars';
-import { handleAuthentication, fetchAccessToken, fetchSierraToken } from './src/helpers/OAuthHelper';
+import { handleAuthentication, fetchAccessToken } from './src/helpers/OAuthHelper';
 import ApiHelper from './src/helpers/ApiHelper';
 import Cache from './src/cache/CacheFactory';
 import CancelRequestConsumerError from './src/helpers/ErrorHelper';
@@ -9,26 +9,6 @@ import { postItemsToStream } from './src/helpers/StreamHelper';
 import logger from './src/helpers/Logger';
 
 const lambdaEnvVarsClient = new LambdaEnvVars();
-
-exports.processRecords = async function (records, opts, token, sierraToken) {
-  try {
-    const {
-      nyplDataApiBaseUrl,
-      sierraUrl
-    } = opts;
-    let record;
-    for (let i = 0; i < records.length; i++) {
-      record = records[i];
-      await ApiHelper.findPatronIdFromBarcode(record, sierraToken, sierraUrl);
-      await ApiHelper.findItemIdFromBarcode(record, token, nyplDataApiBaseUrl);
-      await ApiHelper.generateCancelApiModel(record, sierraToken, sierraUrl, ApiHelper.getHoldrequestId, ApiHelper.generateCancelApiModel, ApiHelper.getApiHeaders)
-    }
-    return Promise.resolve(records);
-  } catch (e) {
-    logger.error('Error processing records');
-    return Promise.reject(e);
-  }
-};
 
 exports.handleKinesisAsyncProcessing = async function (records, opts, context, callback) {
   try {
@@ -39,45 +19,43 @@ exports.handleKinesisAsyncProcessing = async function (records, opts, context, c
       oAuthProviderScope,
       nyplDataApiBaseUrl,
       recapCancelRequestSchema,
+      nyplCheckinRequestApiUrl,
+      nyplCheckoutRequestApiUrl,
+      nyplRecapRequestApiUrl,
       cancelRequestResultSchemaName,
-      cancelRequestResultStreamName,
-      sierraUrl,
-      sierraId,
-      sierraSecret
+      cancelRequestResultStreamName
     } = opts;
+
     const streamsClient = new NyplStreamsClient({ nyplDataApiClientBase: nyplDataApiBaseUrl });
 
-    const [ tokenResponse, sierraTokenResponse, decodedRecords ] = await Promise.all([
-      handleAuthentication(Cache.getToken(), fetchAccessToken(oAuthProviderUrl, oAuthClientId, oAuthClientSecret, oAuthProviderScope), 'token'),
-      handleAuthentication(Cache.getSierraToken(), fetchSierraToken(sierraUrl, sierraId, sierraSecret), 'sierraToken'),
+    const [ tokenResponse, decodedRecords ] = await Promise.all([
+      handleAuthentication(Cache.getToken(), fetchAccessToken(oAuthProviderUrl, oAuthClientId, oAuthClientSecret, oAuthProviderScope)),
       streamsClient.decodeData(recapCancelRequestSchema, records.map(i => i.kinesis.data))
     ]);
 
-    [ tokenResponse, sierraTokenResponse ].forEach((response) => {
-      if (response.tokenType === 'new-token') {
-        logger.info(`Obtained a new access token for ${response.tokenName}`);
-        Cache.setToken(response.token, response.tokenName);
-      } else {
-        logger.info(`Using existing access token from Cache for ${response.tokenName}`);
-      }
-    })
-
     const unprocessedRecords = await Cache.filterProcessedRecords(decodedRecords);
-    const processedRecords = await exports.processRecords(unprocessedRecords, opts, tokenResponse.token, sierraTokenResponse.token);
 
+    if (tokenResponse.tokenType === 'new-token') {
+      logger.info('Obtained a new access token from the OAuth Service');
+      Cache.setToken(tokenResponse.token);
+    } else {
+      logger.info('Using existing access token from Cache');
+    }
 
-    let currentSierraToken = Cache.getSierraToken()
-    const processedCancelledItems = await ApiHelper.handleCancelItemsDeleteRequests(processedRecords, currentSierraToken);
-    const proccessedItemsToStream = await postItemsToStream(processedCancelledItems, cancelRequestResultStreamName, cancelRequestResultSchemaName, streamsClient);
+    const processedCheckedOutItems = await ApiHelper.handleCancelItemPostRequests(unprocessedRecords, 'checkout-service', nyplCheckoutRequestApiUrl, Cache.getToken());
+    const processedCheckedInItems = await ApiHelper.handleCancelItemPostRequests(processedCheckedOutItems, 'checkin-service', nyplCheckinRequestApiUrl, Cache.getToken());
+    logger.info(`posting to recap: ${nyplRecapRequestApiUrl}`)
+    const processedItemsToRecap = await ApiHelper.handleCancelItemPostRequests(processedCheckedInItems, 'recap-service', nyplRecapRequestApiUrl, Cache.getToken());
 
-    if (!proccessedItemsToStream || !Array.isArray(proccessedItemsToStream)) {
-      logger.error('The CancelRequestConsumer Lambda failed to proccess all Cancel Request Items', { proccessedItemsToStream: proccessedItemsToStream });
-      return callback(null, 'The CancelRequestConsumer Lambda failed to proccess all Cancel Request Items');
+    if (!processedItemsToRecap || !Array.isArray(processedItemsToRecap)) {
+      logger.error('The CancelRequestConsumer Lambda failed to process all Cancel Request Items', { processedItemsToRecap: processedItemsToRecap });
+      return callback('The CancelRequestConsumer Lambda failed to process all Cancel Request Items');
     }
 
     logger.info('The CancelRequestConsumer Lambda has successfully processed all Cancel Request Items; no fatal errors have occured');
     return callback(null, 'The CancelRequestConsumer Lambda has successfully processed all Cancel Request Items; no fatal errors have occured');
   } catch (e) {
+
     if (e.name === 'AvroValidationError') {
       logger.error('A fatal/non-recoverable AvroValidationError occured which prohibits decoding the kinesis stream; the CancelRequestConsumer Lambda will NOT restart', { debugInfo: e });
       return false;
@@ -85,8 +63,8 @@ exports.handleKinesisAsyncProcessing = async function (records, opts, context, c
 
     if (e.name === 'CancelRequestConsumerError') {
       if (e.type === 'filtered-records-array-empty') {
-        logger.info('The CancelRequestConsumer Lambda has successfully processed all Cancel Request Items; no fatal errors have occured');
-        return callback(null, 'The CancelRequestConsumer Lambda has no records to proccess; all processed records were filtered out resulting in an empty array; no fatal errors have occured');
+        logger.info('The CancelRequestConsumer Lambda has no records to process; all processed records were filtered out resulting in an empty array; no fatal errors have occured');
+        return callback(null, 'The CancelRequestConsumer Lambda has no records to process; all processed records were filtered out resulting in an empty array; no fatal errors have occured');
       }
 
       // Recoverable Error: Reset the access_token
@@ -111,6 +89,12 @@ exports.handleKinesisAsyncProcessing = async function (records, opts, context, c
       // Recoverable Error: Checkout Service may be temporarily down; retriable error.
       if (e.type === 'checkin-service-error' && (!e.statusCode || e.statusCode >= 500)) {
         logger.notice('Restarting the CancelRequestConsumer Lambda; a 5xx or a timeout error was caught from the Checkin Service', { debugInfo: e });
+        return callback(e.message);
+      }
+
+      // Recoverable Error: Recap Service may be temporarily down; retriable error.
+      if (e.type === 'recap-service-error' && (!e.statusCode || e.statusCode >= 500)) {
+        logger.notice('Restarting the CancelRequestConsumer Lambda; a 5xx or a timeout error was caught from the Recap Service', { debugInfo: e });
         return callback(e.message);
       }
 
@@ -223,6 +207,7 @@ exports.kinesisHandler = (records, opts, context, callback) => {
 };
 
 exports.handler = (event, context, callback) => {
+  logger.info(`Processing Event: ${JSON.stringify(event)}`);
   if (event && Array.isArray(event.Records) && event.Records.length > 0) {
     const record = event.Records[0];
     // Handle Kinesis Stream
@@ -242,11 +227,9 @@ exports.handler = (event, context, callback) => {
             recapCancelRequestSchema: process.env.RECAP_CANCEL_REQUEST_SCHEMA_NAME,
             nyplCheckinRequestApiUrl: process.env.NYPL_CHECKIN_REQUEST_API_URL,
             nyplCheckoutRequestApiUrl: process.env.NYPL_CHECKOUT_REQUEST_API_URL,
+            nyplRecapRequestApiUrl: process.env.NYPL_RECAP_REQUEST_API_URL,
             cancelRequestResultSchemaName: process.env.CANCEL_REQUEST_RESULT_SCHEMA_NAME,
-            cancelRequestResultStreamName: process.env.CANCEL_REQUEST_RESULT_STREAM_NAME,
-            sierraUrl: process.env.SIERRA_URL,
-            sierraId: process.env.SIERRA_ID,
-            sierraSecret: process.env.SIERRA_SECRET
+            cancelRequestResultStreamName: process.env.CANCEL_REQUEST_RESULT_STREAM_NAME
           },
           context,
           callback
@@ -258,9 +241,7 @@ exports.handler = (event, context, callback) => {
         [
           'OAUTH_CLIENT_ID',
           'OAUTH_CLIENT_SECRET',
-          'OAUTH_PROVIDER_SCOPE',
-          'SIERRA_ID',
-          'SIERRA_SECRET'
+          'OAUTH_PROVIDER_SCOPE'
         ],
         { location: 'lambdaConfig' })
         .then(resultObject => {
@@ -271,15 +252,13 @@ exports.handler = (event, context, callback) => {
               recapCancelRequestSchema: process.env.RECAP_CANCEL_REQUEST_SCHEMA_NAME,
               nyplCheckinRequestApiUrl: process.env.NYPL_CHECKIN_REQUEST_API_URL,
               nyplCheckoutRequestApiUrl: process.env.NYPL_CHECKOUT_REQUEST_API_URL,
+              nyplRecapRequestApiUrl: process.env.NYPL_RECAP_REQUEST_API_URL,
               cancelRequestResultSchemaName: process.env.CANCEL_REQUEST_RESULT_SCHEMA_NAME,
               cancelRequestResultStreamName: process.env.CANCEL_REQUEST_RESULT_STREAM_NAME,
               oAuthProviderUrl: process.env.OAUTH_PROVIDER_URL,
               oAuthClientId: resultObject.OAUTH_CLIENT_ID,
               oAuthClientSecret: resultObject.OAUTH_CLIENT_SECRET,
-              oAuthProviderScope: resultObject.OAUTH_PROVIDER_SCOPE,
-              sierraUrl: process.env.SIERRA_URL,
-              sierraId: resultObject.SIERRA_ID,
-              sierraSecret: resultObject.SIERRA_SECRET
+              oAuthProviderScope: resultObject.OAUTH_PROVIDER_SCOPE
             },
             context,
             callback
