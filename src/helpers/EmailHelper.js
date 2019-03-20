@@ -132,7 +132,7 @@ const processItemAndEmail = (token) => (item) => {
     .catch(e => logger.error("Error processing email: ", e.message))
   }
   catch(err) {
-    console.log(err.message)
+    logger.error("Error processing item email: ", err.message)
   }
 }
 
