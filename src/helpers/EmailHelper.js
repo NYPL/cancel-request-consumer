@@ -24,7 +24,9 @@ function EmailHelper(token) {
             <body>
               Dear ${this.names[0]},
               <br>
+              <br>
               Your request for the following item has been cancelled:
+              <br>
               <br>
               <b>Title</b>: ${this.titles[0]}
               <br>
@@ -36,7 +38,6 @@ function EmailHelper(token) {
               If this cancellation request was made in error, <a href="https://gethelp.nypl.org/customer/portal/emails/new">email us</a> or call 917-ASK-NYPL (917-275-6975).
             </body>
             </html>`
-            // Data: `Author: ${this.authors},Title: ${this.titles}, Patron: ${this.names[0]}, Barcode: ${this.barcode}`
           }
         },
         Subject: {
