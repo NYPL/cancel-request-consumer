@@ -115,8 +115,9 @@ function EmailHelper(token) {
 const processItemAndEmail = (item, token) => {
   logger.info('Processing Email for: ', item.patronBarcode, item.itemBarcode);
   const helper = new EmailHelper(token);
-  return Promise.all(
-    [helper.getInfo("Patron", item.patronBarcode), helper.getInfo("Item", item.itemaBarcode)])
+  return Promise.all([
+    helper.getInfo("Patron", item.patronBarcode),
+    helper.getInfo("Item", item.itemaBarcode)])
     .then(() => helper.getInfo("Bib"))
     .then(() => helper.sendEmailForItem())
     .catch((e) => {
