@@ -49,95 +49,84 @@ function EmailHelper(token) {
     }
   }
 
-  this.getInfo = function(type, barcode = "") {
+  this.getInfo = function(type, barcode = null) {
     const url = `${process.env.NYPL_DATA_API_BASE_URL}${type.toLowerCase()}s`
-    logger.info("Posting to: ", url);
-    return axios.get(url, this[`set${type}Config`](barcode, this.token))
+    logger.info("Getting: ", url);
+    let config = this.buildAxiosConfigFor(type, barcode, token);
+    return axios.get(url, config)
     .then((result) => {
-      this[`set${type}Info`](result.data.data);
+      this.setInfoFor(type, result.data.data);
     })
     .catch((error) => {
       logger.error(`Error retrieving ${type}:`, error.message);
+      throw error;
     })
   }
 
-  this.setPatronConfig = function(barcode, token) {
+  this.buildAxiosConfigFor = function(type, barcode, token) {
     let config = ApiHelper.getApiHeaders(token);
-    config.params = {barcode: barcode};
-    logger.info("Getting patron info for: ", barcode)
+    let params = {};
+    if (barcode) {
+      params.barcode = barcode;
+    }
+    if (type === 'Bib') {
+      params.id = this.bibIds.join(",");
+    }
+    config.params = params;
+    logger.info("Getting info for: ", type, barcode, this.bibIds);
     return config;
   }
 
-  this.setPatronInfo = function(data) {
-    this.emails = data[0].emails;
-    this.names = data[0].names;
-    logger.info("Retrieved emails: ", this.emails, "Retrieved names: ", this.names);
-  }
-
-  this.setItemConfig = function(barcode, token) {
-    let config = ApiHelper.getApiHeaders(token);
-    config.params = {barcode: barcode};
-    logger.info("Getting item info for: ", barcode)
-    return config;
-  }
-
-  this.setItemInfo = function(data) {
-    this.bibIds = data[0].bibIds;
-    this.barcode = data[0].barcode;
-    logger.info("Retrieved bibIds: ", this.bibIds, "Retrieved barcodes: ", this.barcodes);
-  }
-
-  this.setBibConfig = function(barcode, token) {
-    const id = this.bibIds.join(",");
-    let config = ApiHelper.getApiHeaders(token);
-    config.params = {id: id};
-    logger.info("Getting Bib Info for: ", id)
-    return config;
-  }
-
-  this.setBibInfo = function(data) {
-    this.authors = data.map(bib => bib.author);
-    this.titles = data.map(bib => bib.title);
-    logger.info("Retrieved authors and titles: ", this.authors, this.titles);
+  this.setInfoFor = function(type, data) {
+    if (type === "Patron") {
+      this.emails = data[0].emails;
+      this.names = data[0].names;
+      logger.info("Retrieved emails: ", this.emails, "Retrieved names: ", this.names);
+    }
+    if (type === "Item") {
+      this.bibIds = data[0].bibIds;
+      this.barcode = data[0].barcode;
+      logger.info("Retrieved bibIds: ", this.bibIds, "Retrieved barcodes: ", this.barcodes);
+    }
+    if (type === "Bib") {
+      this.authors = data.map(bib => bib.author);
+      this.titles = data.map(bib => bib.title);
+      logger.info("Retrieved authors and titles: ", this.authors, this.titles);
+    }
   }
 
   this.sendEmailForItem = function() {
     let params = this.params();
     logger.info(`Sending email: ${JSON.stringify(params, null, 2)}`)
     const sendPromise = new AWS.SES({apiVersion: '2010-12-01'}).sendEmail(params).promise();
-    sendPromise.then(
-      function(data){
+    return sendPromise.then(
+      (data) => {
         logger.info(data.MessageId);
       }
     ).catch(
-      function(err){
-        logger.error(err, err.stack);
+      (err) => {
+        logger.error("Error sending email", err, err.stack);
+        throw err;
       }
     );
-
   }
-
-
-
 }
 
-const processItemAndEmail = (token) => (item) => {
-  logger.info('Processing Email for: ', item.patronBarcode, item.itemBarcode, token);
+const processItemAndEmail = (item, token) => {
+  logger.info('Processing Email for: ', item.patronBarcode, item.itemBarcode);
   const helper = new EmailHelper(token);
-  try {
-  helper.getInfo("Patron", item.patronBarcode)
-    .then(() => helper.getInfo("Item", item.itemBarcode))
+  return Promise.all(
+    [helper.getInfo("Patron", item.patronBarcode), helper.getInfo("Item", item.itemaBarcode)])
     .then(() => helper.getInfo("Bib"))
     .then(() => helper.sendEmailForItem())
-    .catch(e => logger.error("Error processing email: ", e.message))
-  }
-  catch(err) {
-    logger.error("Error processing item email: ", err.message)
-  }
+    .catch((e) => {
+      logger.error("Error processing email: ", e.message);
+      throw e
+    })
 }
 
 const sendEmail = (processedItemsToRecap, token) => {
-  processedItemsToRecap.forEach(processItemAndEmail(token));
+  return Promise.all(processedItemsToRecap.map(item => processItemAndEmail(item, token)));
 }
 
 export default sendEmail;
