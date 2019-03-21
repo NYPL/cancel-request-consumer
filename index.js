@@ -7,6 +7,7 @@ import Cache from './src/cache/CacheFactory';
 import CancelRequestConsumerError from './src/helpers/ErrorHelper';
 import { postItemsToStream } from './src/helpers/StreamHelper';
 import logger from './src/helpers/Logger';
+import sendEmail from './src/helpers/EmailHelper';
 
 const lambdaEnvVarsClient = new LambdaEnvVars();
 
@@ -46,6 +47,7 @@ exports.handleKinesisAsyncProcessing = async function (records, opts, context, c
     const processedCheckedInItems = await ApiHelper.handleCancelItemPostRequests(processedCheckedOutItems, 'checkin-service', nyplCheckinRequestApiUrl, Cache.getToken());
     logger.info(`posting to recap: ${nyplRecapRequestApiUrl}`)
     const processedItemsToRecap = await ApiHelper.handleCancelItemPostRequests(processedCheckedInItems, 'recap-service', nyplRecapRequestApiUrl, Cache.getToken());
+    await sendEmail(processedItemsToRecap, Cache.getToken());
 
     if (!processedItemsToRecap || !Array.isArray(processedItemsToRecap)) {
       logger.error('The CancelRequestConsumer Lambda failed to process all Cancel Request Items', { processedItemsToRecap: processedItemsToRecap });
