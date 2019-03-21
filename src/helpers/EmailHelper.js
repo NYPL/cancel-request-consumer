@@ -49,6 +49,10 @@ function EmailHelper(token) {
     }
   }
 
+  // There are three types of info we need to get: for Patrons, Items, and Bibs
+  // In each case, this function will build the appropriate axios config (in particular this
+  // this sets the token and params), make a get request, and save the info using setInfoFor
+
   this.getInfo = function(type, barcode = null) {
     const url = `${process.env.NYPL_DATA_API_BASE_URL}${type.toLowerCase()}s`
     logger.info("Getting: ", url);
@@ -62,6 +66,8 @@ function EmailHelper(token) {
       throw error;
     })
   }
+
+  // Patrons and Items need a token and a barcode, bibs need a token and ids.
 
   this.buildAxiosConfigFor = function(type, barcode, token) {
     let config = ApiHelper.getApiHeaders(token);
