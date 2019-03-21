@@ -101,11 +101,11 @@ function EmailHelper(token) {
     const sendPromise = new AWS.SES({apiVersion: '2010-12-01'}).sendEmail(params).promise();
     return sendPromise.then(
       (data) => {
-        logger.info(data.MessageId);
+        logger.info("SES responded with: ", data.MessageId);
       }
     ).catch(
       (err) => {
-        logger.error("Error sending email", err, err.stack);
+        logger.error("Error sending email with SES", err, err.stack);
         throw err;
       }
     );
