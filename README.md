@@ -199,3 +199,4 @@ $ npm run lint [filename].js // Will lint the specific JS file
 * [sinon-chai](https://www.npmjs.com/package/sinon-chai)
 * [standard-js](https://www.npmjs.com/package/standard)
 * [istanbul](https://github.com/istanbuljs/nyc)
+
