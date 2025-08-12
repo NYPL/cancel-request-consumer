@@ -44,7 +44,7 @@
     "@nypl/nypl-streams-client": "0.1.4",
     "async": "2.5.0",
     "aws-sdk": "2.124.0",
-    "axios": "0.16.2",
+    "axios": "0.30.0",
     "babel-runtime": "6.26.0",
     "circular-json": "0.3.3",
     "json-truncate": "1.3.0",
