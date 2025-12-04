@@ -80,46 +80,6 @@ if (process.env.NODE_ENV !== 'test') {
   );
 }
 
-if (process.env.NODE_ENV === 'production' && process.env.SLACK_WEBHOOK_URL && process.env.SLACK_WEBHOOK_URL !== '' &&
-  process.env.SLACK_CHANNEL && process.env.SLACK_CHANNEL !== '' &&
-  process.env.SLACK_USERNAME && process.env.SLACK_USERNAME !== '') {
-  loggerTransports.push(
-    new (SlackHook)({
-      level: 'error',
-      hookUrl: process.env.SLACK_WEBHOOK_URL,
-      username: process.env.SLACK_USERNAME,
-      channel: process.env.SLACK_CHANNEL,
-      appendMeta: false,
-      prependLevel: false,
-      formatter: (options) => {
-        let slackText = '>>> *Timestamp*: ' + new Date().toISOString() + '\n';
-
-        if (options.level) {
-          slackText += '*Level*: ' + options.level.toUpperCase() + '\n';
-          slackText += '*Level Code*: ' + getLogLevelCode(options.level) + '\n';
-        }
-
-        if (options.message) {
-          slackText += '*Message*:\n' + options.message + '\n';
-        }
-
-        if (options.meta && Object.keys(options.meta).length) {
-          if (options.meta.cancelRequestId) {
-            slackText += '*Cancel Request ID*: ' + options.meta.cancelRequestId + '\n';
-            delete options.meta.cancelRequestId;
-          }
-
-          if (options.meta && Object.keys(options.meta).length) {
-            slackText += '*Meta*:\n' + '```' + CircularJSON.stringify(JSON.truncate(options.meta, { maxDepth: 4, replace: '[Truncated...]' }), null, '\t') + '```' + '\n';
-          }
-        }
-
-        return slackText;
-      }
-    })
-  );
-}
-
 const logger = new (winston.Logger)({
   levels: levels,
   transports: loggerTransports,
